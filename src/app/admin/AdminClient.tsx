@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
@@ -89,6 +90,7 @@ const normalizeMonth = (m: string | number | undefined | null): string => {
 };
 
 interface AdminClientProps {
+  initialSection?: string;
   initialTab?: string;
   warga: any[];
   iuranTypes: any[];
@@ -105,7 +107,8 @@ interface AdminClientProps {
 }
 
 export default function AdminClient({
-  initialTab = "overview",
+  initialSection = "overview",
+  initialTab = "Umum",
   warga,
   iuranTypes,
   iuranPeriods,
@@ -119,7 +122,10 @@ export default function AdminClient({
   rondaSchedules,
   rondaAssignments
 }: AdminClientProps) {
-  const [activeTab, setActiveTab] = useState<AdminTab>(initialTab as AdminTab);  const [searchTerm, setSearchTerm] = useState("");
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const [activeTab, setActiveTab] = useState<AdminTab>(initialSection as AdminTab);
+  const [searchTerm, setSearchTerm] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error' | 'warning', text: string } | null>(null);
 
@@ -192,8 +198,21 @@ export default function AdminClient({
   ];
 
   // Unified Agenda Sub-tabs
-  const [activeAgendaSubTab, setActiveAgendaSubTab] = useState<string>("Umum");
+  const [activeAgendaSubTab, setActiveAgendaSubTab] = useState<string>(initialTab);
   const [editingItem, setEditingItem] = useState<any>(null);
+
+  // Sync state with URL params
+  useEffect(() => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("section", activeTab);
+    if (activeTab === "agenda") {
+      params.set("tab", activeAgendaSubTab);
+    } else {
+      params.delete("tab");
+    }
+    const newUrl = `${window.location.pathname}?${params.toString()}`;
+    window.history.replaceState(null, '', newUrl);
+  }, [activeTab, activeAgendaSubTab, searchParams]);
 
   const filteredGotongRoyong = gotongRoyong.filter(item => item.activity_type === activeAgendaSubTab);
 
@@ -206,7 +225,7 @@ export default function AdminClient({
     else {
       setMessage({ type: 'success', text: "Operasi berhasil." });
       closeModal();
-      window.location.reload();
+      router.refresh();
     }
     setIsSubmitting(false);
   };
@@ -229,7 +248,7 @@ export default function AdminClient({
     if (result.error) alert("Gagal menghapus: " + result.error);
     else {
       closeModal();
-      window.location.reload();
+      router.refresh();
     }
     setIsSubmitting(false);
   };
@@ -575,9 +594,11 @@ export default function AdminClient({
                             <td key={month} className="p-1 border-r border-slate-100 last:border-0">
                               <button
                                 onClick={() => {
-                                  setSelectedPayment(payment || null);
-                                  setSelectedCell({ residentId: resident.id, month, year: selectedYear });
-                                  setAdminNote(payment?.notes || "");
+                                  if (payment) {
+                                    openEdit('payment-detail', payment);
+                                  } else {
+                                    alert("Belum ada tagihan/pembayaran untuk periode ini.");
+                                  }
                                 }}
                                 className={`w-full h-11 rounded-xl flex flex-col items-center justify-center gap-0.5 transition-all shadow-sm border ${
                                   payment?.status === 'Lunas' ? 'bg-emerald-500 border-emerald-600 text-white hover:bg-emerald-600' :
@@ -951,11 +972,62 @@ export default function AdminClient({
                   'kontak': modal.mode === 'create' ? createEmergencyContact : (fd: FormData) => updateEmergencyContact(modal.item.id, fd),
                   'profil': (fd: FormData) => updateHousingProfile(profil.id, Object.fromEntries(fd.entries())),
                   'jenis-iuran': modal.mode === 'create' ? createIuranType : (fd: FormData) => updateIuranType(modal.item.id, fd),
-                  'iuran-period': createIuranPeriod
+                  'iuran-period': createIuranPeriod,
+                  'payment-detail': (fd: FormData) => updatePaymentStatus(modal.item.id, fd.get('status') as any, fd.get('admin_notes') as string)
                 };
                 handleAction(actionMap[modal.module], e);
               }} className="space-y-5">
                 
+                {/* Payment Detail Modal */}
+                {modal.module === 'payment-detail' && (
+                  <div className="space-y-6">
+                    <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 grid grid-cols-2 gap-4">
+                      <div>
+                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">Warga</p>
+                        <p className="text-sm font-bold text-slate-900 leading-tight">{modal.item?.residents?.name}</p>
+                      </div>
+                      <div>
+                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">Periode</p>
+                        <p className="text-sm font-bold text-slate-900 leading-tight">{modal.item?.iuran_periods?.month} {modal.item?.iuran_periods?.year}</p>
+                      </div>
+                      <div>
+                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">Nominal</p>
+                        <p className="text-sm font-bold text-emerald-600 leading-tight">Rp {modal.item?.amount?.toLocaleString('id-ID')}</p>
+                      </div>
+                      <div>
+                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">Status Saat Ini</p>
+                        <Badge variant={modal.item?.status === 'Lunas' ? 'success' : modal.item?.status === 'Ditolak' ? 'danger' : 'warning'} className="font-bold">
+                          {modal.item?.status}
+                        </Badge>
+                      </div>
+                    </div>
+
+                    {modal.item?.evidence_url && (
+                      <div className="space-y-2">
+                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">Bukti Transfer</p>
+                        <div className="relative aspect-video w-full rounded-2xl overflow-hidden border border-slate-200 bg-slate-100 flex items-center justify-center">
+                          <img src={modal.item.evidence_url} alt="Bukti Pembayaran" className="max-h-full object-contain" />
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="space-y-4">
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Update Status</label>
+                        <select name="status" defaultValue={modal.item?.status} className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold">
+                          <option value="Menunggu Verifikasi">Menunggu Verifikasi</option>
+                          <option value="Lunas">Verifikasi (Lunas)</option>
+                          <option value="Ditolak">Tolak Pembayaran</option>
+                        </select>
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Catatan Admin</label>
+                        <textarea name="admin_notes" defaultValue={modal.item?.admin_notes} rows={3} placeholder="Contoh: Bukti transfer tidak terbaca / Pembayaran dikonfirmasi..." className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm" />
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 {/* Warga Form */}
                 {modal.module === 'warga' && (
                   <>

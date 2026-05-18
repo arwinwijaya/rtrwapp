@@ -25,7 +25,8 @@ export default async function AdminPage({
 
   // Await searchParams properly
   const params = await searchParams;
-  const initialTab = (params?.tab as string) || "overview";
+  const initialSection = (params?.section as string) || "overview";
+  const initialTab = (params?.tab as string) || "Umum";
 
   // Fetch all necessary admin data
   // We fetch them concurrently for performance
@@ -59,6 +60,7 @@ export default async function AdminPage({
 
   return (
     <AdminClient 
+      initialSection={initialSection}
       initialTab={initialTab}
       warga={warga || []}
       iuranTypes={iuranTypes || []}
