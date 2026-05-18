@@ -404,6 +404,44 @@ export async function createAgenda(formData: FormData) {
 }
 
 /**
+ * Create Emergency Contact
+ */
+export async function createEmergencyContact(formData: FormData) {
+  if (!(await checkAdmin())) return { error: 'Unauthorized' }
+
+  const name = formData.get('name') as string
+  const role = formData.get('role') as string
+  const phone = formData.get('phone') as string
+  const category = formData.get('category') as string
+  const description = formData.get('description') as string
+  const display_order = parseInt(formData.get('display_order') as string || '0')
+
+  try {
+    const supabase = await createClient()
+    const { data: user } = await supabase.auth.getUser()
+    const { data: profile } = await supabase.from('profiles').select('housing_id').eq('id', user.user?.id || '').single()
+
+    const { error } = await supabase.from('emergency_contacts').insert({
+      housing_id: profile?.housing_id,
+      name,
+      role,
+      phone,
+      category,
+      description,
+      display_order,
+      is_active: true
+    })
+
+    if (error) throw error
+    revalidatePath('/admin')
+    revalidatePath('/kontak')
+    return { success: true }
+  } catch (error: any) {
+    return { error: error.message }
+  }
+}
+
+/**
  * Create Announcement
  */
 export async function createAnnouncement(formData: FormData) {
@@ -601,37 +639,106 @@ export async function createRondaSchedule(formData: FormData) {
 }
 
 /**
- * Create Emergency Contact
+ * Update Agenda
  */
-export async function createEmergencyContact(formData: FormData) {
+export async function updateAgenda(id: string, formData: FormData) {
   if (!(await checkAdmin())) return { error: 'Unauthorized' }
 
-  const name = formData.get('name') as string
-  const role = formData.get('role') as string
-  const phone = formData.get('phone') as string
-  const category = formData.get('category') as string
+  const title = formData.get('title') as string
+  const category = formData.get('category') as any
+  const date = formData.get('date') as string
+  const time = formData.get('time') as string
+  const location = formData.get('location') as string
   const description = formData.get('description') as string
-  const display_order = parseInt(formData.get('display_order') as string || '0')
+  const visibility = formData.get('visibility') as any
 
   try {
     const supabase = await createClient()
-    const { data: user } = await supabase.auth.getUser()
-    const { data: profile } = await supabase.from('profiles').select('housing_id').eq('id', user.user?.id || '').single()
-
-    const { error } = await supabase.from('emergency_contacts').insert({
-      housing_id: profile?.housing_id,
-      name,
-      role,
-      phone,
+    const { error } = await supabase.from('agendas').update({
+      title,
       category,
+      date,
+      time,
+      location,
       description,
-      display_order,
-      is_active: true
-    })
+      visibility
+    }).eq('id', id)
 
     if (error) throw error
     revalidatePath('/admin')
-    revalidatePath('/kontak')
+    revalidatePath('/agenda')
+    return { success: true }
+  } catch (error: any) {
+    return { error: error.message }
+  }
+}
+
+/**
+ * Update Activity (Gotong Royong / Yasinan)
+ */
+export async function updateActivity(id: string, formData: FormData) {
+  if (!(await checkAdmin())) return { error: 'Unauthorized' }
+
+  const title = formData.get('title') as string
+  const activity_type = formData.get('activity_type') as any
+  const date = formData.get('date') as string
+  const time = formData.get('time') as string
+  const location = formData.get('location') as string
+  const description = formData.get('description') as string
+  const host_name = formData.get('host_name') as string || null
+  const required_participants = parseInt(formData.get('required_participants') as string || '0')
+  const status = formData.get('status') as any
+
+  try {
+    const supabase = await createClient()
+    const { error } = await supabase.from('gotong_royong').update({
+      title,
+      activity_type,
+      date,
+      time,
+      location,
+      description,
+      host_name,
+      required_participants,
+      status
+    }).eq('id', id)
+
+    if (error) throw error
+    revalidatePath('/admin')
+    revalidatePath('/agenda')
+    revalidatePath('/agenda/gotong-royong')
+    revalidatePath('/agenda/yasinan')
+    return { success: true }
+  } catch (error: any) {
+    return { error: error.message }
+  }
+}
+
+/**
+ * Update Single Ronda Schedule
+ */
+export async function updateRondaSchedule(id: string, formData: FormData) {
+  if (!(await checkAdmin())) return { error: 'Unauthorized' }
+
+  const date = formData.get('date') as string
+  const time = formData.get('time') as string
+  const area = formData.get('area') as string
+  const notes = formData.get('notes') as string
+  const status = formData.get('status') as any
+
+  try {
+    const supabase = await createClient()
+    const { error } = await supabase.from('ronda_schedules').update({
+      date,
+      time,
+      area,
+      notes,
+      status
+    }).eq('id', id)
+
+    if (error) throw error
+    revalidatePath('/admin')
+    revalidatePath('/agenda/ronda')
     return { success: true }
   } catch (error: any) {
     return { error: error.message }

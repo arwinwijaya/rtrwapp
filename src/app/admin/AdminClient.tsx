@@ -28,7 +28,8 @@ import {
   Check,
   X,
   Hammer,
-  ShieldAlert
+  ShieldAlert,
+  BookOpen
 } from "lucide-react";
 import { 
   createResident, 
@@ -44,7 +45,10 @@ import {
   rejectPayment,
   updatePaymentStatus,
   generateRondaSchedule,
-  createRondaSchedule
+  createRondaSchedule,
+  updateAgenda,
+  updateActivity,
+  updateRondaSchedule
 } from "./actions";
 
 type AdminTab = "overview" | "warga" | "iuran" | "agenda" | "gotong-royong" | "pengumuman" | "laporan" | "kontak" | "profil";
@@ -158,18 +162,17 @@ export default function AdminClient({
     { id: "warga", label: "Data Warga", icon: Users },
     { id: "iuran", label: "Iuran", icon: Wallet },
     { id: "agenda", label: "Agenda & Kegiatan", icon: Calendar },
-    { id: "gotong-royong", label: "Kegiatan Warga", icon: Users },
     { id: "pengumuman", label: "Pengumuman", icon: Megaphone },
-
     { id: "laporan", label: "Laporan", icon: FileWarning },
     { id: "kontak", label: "Kontak Darurat", icon: Phone },
     { id: "profil", label: "Profil RT/RW", icon: Building2 },
   ];
 
-  // Kegiatan Sub-tabs
-  const [activeKegiatanSubTab, setActiveKegiatanSubTab] = useState<string>("Gotong Royong");
+  // Unified Agenda Sub-tabs
+  const [activeAgendaSubTab, setActiveAgendaSubTab] = useState<string>("Umum");
+  const [editingItem, setEditingItem] = useState<any>(null);
 
-  const filteredGotongRoyong = gotongRoyong.filter(item => item.activity_type === activeKegiatanSubTab || (!item.activity_type && activeKegiatanSubTab === "Gotong Royong"));
+  const filteredGotongRoyong = gotongRoyong.filter(item => item.activity_type === activeAgendaSubTab);
 
   const handleAction = async (action: (fd: FormData) => Promise<any>, e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -742,78 +745,22 @@ export default function AdminClient({
           </div>
         )}
 
-        {/* 4. AGENDA TAB */}
+        {/* 4. UNIFIED AGENDA & KEGIATAN TAB */}
         {activeTab === "agenda" && (
-           <div className="space-y-8 animate-in fade-in duration-500">
-             <div>
-                <h1 className="text-2xl font-bold text-slate-900">Kelola Agenda</h1>
-                <p className="text-sm text-slate-500">Jadwal kegiatan rutin dan acara khusus warga.</p>
-              </div>
-
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
-               <div className="lg:col-span-2 space-y-4">
-                  {agendas.map(agenda => (
-                    <Card key={agenda.id} className="border-none shadow-sm">
-                      <CardContent className="p-6 flex items-center justify-between gap-6">
-                        <div className="flex items-center gap-4">
-                          <div className="h-10 w-10 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center shrink-0"><Calendar size={20} /></div>
-                          <div>
-                            <h3 className="font-bold text-slate-900 text-sm">{agenda.title}</h3>
-                            <p className="text-[10px] text-slate-400 uppercase font-bold">{agenda.date} | {agenda.time}</p>
-                          </div>
-                        </div>
-                        <button onClick={() => handleDelete('agendas', agenda.id)} className="p-2 text-slate-400 hover:text-red-600"><Trash2 size={16} /></button>
-                      </CardContent>
-                    </Card>
-                  ))}
-               </div>
-
-               <Card className="border-none shadow-sm border-2 border-emerald-50 h-fit">
-                  <CardHeader><CardTitle className="text-lg">Tambah Agenda</CardTitle></CardHeader>
-                  <CardContent>
-                    <form onSubmit={(e) => handleAction(createAgenda, e)} className="space-y-4">
-                       <div className="space-y-1">
-                          <label className="text-xs font-bold text-slate-500 uppercase">Judul Kegiatan</label>
-                          <input name="title" required className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm" />
-                       </div>
-                       <div className="grid grid-cols-2 gap-4">
-                          <div className="space-y-1">
-                             <label className="text-xs font-bold text-slate-500 uppercase">Tanggal</label>
-                             <input name="date" type="date" required className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm" />
-                          </div>
-                          <div className="space-y-1">
-                             <label className="text-xs font-bold text-slate-500 uppercase">Waktu</label>
-                             <input name="time" type="time" required className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm" />
-                          </div>
-                       </div>
-                       <div className="space-y-1">
-                          <label className="text-xs font-bold text-slate-500 uppercase">Lokasi</label>
-                          <input name="location" required className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm" />
-                       </div>
-                       <Button type="submit" className="w-full bg-emerald-600" isLoading={isSubmitting}>Simpan Agenda</Button>
-                    </form>
-                  </CardContent>
-               </Card>
-            </div>
-           </div>
-        )}
-
-        {/* 5. KEGIATAN TAB (Gotong Royong, Yasinan, Ronda) */}
-        {activeTab === "gotong-royong" && (
            <div className="space-y-8 animate-in fade-in duration-500">
              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
-                  <h1 className="text-2xl font-bold text-slate-900">Kegiatan Warga</h1>
-                  <p className="text-sm text-slate-500">Kelola jadwal gotong royong, yasinan, dan ronda harian.</p>
+                  <h1 className="text-2xl font-bold text-slate-900">Manajemen Agenda & Kegiatan</h1>
+                  <p className="text-sm text-slate-500">Kelola semua jadwal, gotong royong, yasinan, dan ronda.</p>
                 </div>
-                <div className="flex bg-slate-100 p-1 rounded-xl w-fit">
-                   {["Gotong Royong", "Yasinan", "Ronda"].map(sub => (
+                <div className="flex bg-slate-100 p-1 rounded-xl w-fit overflow-x-auto scrollbar-hide">
+                   {["Umum", "Gotong Royong", "Yasinan", "Ronda"].map(sub => (
                      <button
                        key={sub}
-                       onClick={() => setActiveKegiatanSubTab(sub)}
+                       onClick={() => { setActiveAgendaSubTab(sub); setEditingItem(null); }}
                        className={clsx(
-                         "px-4 py-2 text-xs font-bold rounded-lg transition-all",
-                         activeKegiatanSubTab === sub ? "bg-white text-emerald-600 shadow-sm" : "text-slate-500 hover:text-slate-700"
+                         "px-4 py-2 text-xs font-bold rounded-lg transition-all whitespace-nowrap",
+                         activeAgendaSubTab === sub ? "bg-white text-emerald-600 shadow-sm" : "text-slate-500 hover:text-slate-700"
                        )}
                      >
                        {sub}
@@ -822,9 +769,9 @@ export default function AdminClient({
                 </div>
               </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
-               <div className="lg:col-span-2 space-y-4">
-                  {activeKegiatanSubTab === "Ronda" ? (
+            <div className="grid grid-cols-1 lg:grid-cols-4 gap-8 items-start">
+               <div className="lg:col-span-3 space-y-4">
+                  {activeAgendaSubTab === "Ronda" ? (
                     <Card className="border-none shadow-sm overflow-hidden">
                        <CardHeader className="pb-4 border-b border-slate-50 flex justify-between items-center">
                           <CardTitle className="text-sm font-bold uppercase tracking-wider">Jadwal Ronda Harian</CardTitle>
@@ -882,7 +829,7 @@ export default function AdminClient({
                                    {rondaSchedules.length > 0 ? rondaSchedules.map(schedule => {
                                       const assignments = rondaAssignments.filter(a => a.ronda_schedule_id === schedule.id);
                                       return (
-                                         <tr key={schedule.id} className="hover:bg-slate-50 transition-colors">
+                                         <tr key={schedule.id} className="hover:bg-slate-50 transition-colors group">
                                             <td className="px-6 py-4">
                                                <p className="font-bold text-slate-900">{schedule.date}</p>
                                                <p className="text-[10px] text-slate-400 font-bold">{schedule.time} WIB | {schedule.area}</p>
@@ -896,8 +843,9 @@ export default function AdminClient({
                                                   ))}
                                                </div>
                                             </td>
-                                            <td className="px-6 py-4 text-right">
-                                               <button onClick={() => handleDelete('ronda_schedules', schedule.id)} className="p-2 text-slate-400 hover:text-red-600"><Trash2 size={16} /></button>
+                                            <td className="px-6 py-4 text-right space-x-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                               <button onClick={() => setEditingItem(schedule)} className="p-2 text-slate-400 hover:text-emerald-600 transition-colors"><Edit2 size={16} /></button>
+                                               <button onClick={() => handleDelete('ronda_schedules', schedule.id)} className="p-2 text-slate-400 hover:text-red-600 transition-colors"><Trash2 size={16} /></button>
                                             </td>
                                          </tr>
                                       );
@@ -911,100 +859,220 @@ export default function AdminClient({
                           </div>
                        )}
                     </Card>
+                  ) : activeAgendaSubTab === "Umum" ? (
+                    <div className="space-y-4">
+                       {agendas.length > 0 ? agendas.map(agenda => (
+                         <Card key={agenda.id} className="border-none shadow-sm group">
+                           <CardContent className="p-6 flex items-center justify-between gap-6">
+                             <div className="flex items-center gap-4">
+                               <div className="h-12 w-12 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center shrink-0 shadow-sm"><Calendar size={24} /></div>
+                               <div>
+                                 <h3 className="font-bold text-slate-900">{agenda.title}</h3>
+                                 <p className="text-xs text-slate-400 font-bold uppercase">{agenda.date} | {agenda.time} WIB | {agenda.location}</p>
+                               </div>
+                             </div>
+                             <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <button onClick={() => setEditingItem(agenda)} className="p-2 text-slate-400 hover:text-emerald-600 transition-colors"><Edit2 size={18} /></button>
+                                <button onClick={() => handleDelete('agendas', agenda.id)} className="p-2 text-slate-400 hover:text-red-600 transition-colors"><Trash2 size={18} /></button>
+                             </div>
+                           </CardContent>
+                         </Card>
+                       )) : (
+                         <div className="text-center py-20 bg-white rounded-3xl border-2 border-dashed border-slate-100">
+                            <p className="text-slate-400 font-medium">Belum ada agenda umum.</p>
+                         </div>
+                       )}
+                    </div>
                   ) : (
-                    <>
+                    <div className="space-y-4">
                       {filteredGotongRoyong.length > 0 ? filteredGotongRoyong.map(item => (
-                        <Card key={item.id} className="border-none shadow-sm">
+                        <Card key={item.id} className="border-none shadow-sm group">
                           <CardContent className="p-6 flex items-center justify-between gap-6">
                             <div className="flex items-center gap-4">
-                               <div className="h-10 w-10 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center shrink-0">
-                                  {item.activity_type === "Yasinan" ? <Calendar size={20} /> : <Users size={20} />}
+                               <div className="h-12 w-12 bg-emerald-50 text-emerald-600 rounded-2xl flex items-center justify-center shrink-0 shadow-sm">
+                                  {item.activity_type === "Yasinan" ? <BookOpen size={24} /> : <Hammer size={24} />}
                                </div>
                                <div>
-                                  <h3 className="font-bold text-slate-900 text-sm">{item.title}</h3>
-                                  <p className="text-[10px] text-slate-400 font-bold uppercase">{item.date} | {item.time} {item.host_name ? `| Host: ${item.host_name}` : ''}</p>
+                                  <h3 className="font-bold text-slate-900">{item.title}</h3>
+                                  <p className="text-xs text-slate-400 font-bold uppercase">{item.date} | {item.time} {item.host_name ? `| Host: ${item.host_name}` : ''}</p>
                                </div>
                             </div>
                             <div className="flex items-center gap-4">
                                <Badge variant={item.status === 'Completed' ? 'success' : item.status === 'Cancelled' ? 'danger' : 'warning'}>{item.status}</Badge>
-                               <button onClick={() => handleDelete('gotong_royong', item.id)} className="p-2 text-slate-400 hover:text-red-600"><Trash2 size={16} /></button>
+                               <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                  <button onClick={() => setEditingItem(item)} className="p-2 text-slate-400 hover:text-emerald-600 transition-colors"><Edit2 size={18} /></button>
+                                  <button onClick={() => handleDelete('gotong_royong', item.id)} className="p-2 text-slate-400 hover:text-red-600 transition-colors"><Trash2 size={18} /></button>
+                               </div>
                             </div>
                           </CardContent>
                         </Card>
                       )) : (
-                        <div className="text-center py-20 bg-slate-50 rounded-2xl border-2 border-dashed border-slate-200">
-                           <p className="text-slate-400 font-medium text-sm">Belum ada jadwal {activeKegiatanSubTab}.</p>
+                        <div className="text-center py-20 bg-white rounded-3xl border-2 border-dashed border-slate-100">
+                           <p className="text-slate-400 font-medium">Belum ada jadwal {activeAgendaSubTab}.</p>
                         </div>
                       )}
-                    </>
+                    </div>
                   )}
                </div>
 
                <div className="space-y-6">
-                  {activeKegiatanSubTab === "Ronda" ? (
-                    <Card className="border-none shadow-sm border-2 border-emerald-50 h-fit">
-                      <CardHeader><CardTitle className="text-lg">Tambah Ronda Manual</CardTitle></CardHeader>
+                  {editingItem && (
+                    <Card className="border-none shadow-lg bg-emerald-600 text-white animate-in slide-in-from-top duration-300">
+                       <CardContent className="p-4 flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                             <Edit2 size={16} />
+                             <div className="leading-none">
+                                <p className="text-[10px] font-bold uppercase opacity-80 tracking-widest">Mode Edit</p>
+                                <p className="text-xs font-black truncate max-w-[120px]">{editingItem.title || editingItem.date}</p>
+                             </div>
+                          </div>
+                          <button onClick={() => setEditingItem(null)} className="p-1.5 hover:bg-emerald-500 rounded-xl transition-colors"><X size={18} /></button>
+                       </CardContent>
+                    </Card>
+                  )}
+
+                  {activeAgendaSubTab === "Ronda" ? (
+                    <Card className="border-none shadow-sm border-2 border-emerald-50 h-fit overflow-hidden">
+                      <div className="h-1 bg-emerald-500" />
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-lg">{editingItem ? "Edit Ronda" : "Tambah Ronda Manual"}</CardTitle>
+                        <CardDescription className="text-[10px] uppercase font-bold text-slate-400">Jadwal harian petugas keamanan.</CardDescription>
+                      </CardHeader>
                       <CardContent>
-                        <form onSubmit={(e) => handleAction(createRondaSchedule, e)} className="space-y-4">
+                        <form onSubmit={(e) => handleAction(editingItem ? (fd) => updateRondaSchedule(editingItem.id, fd) : createRondaSchedule, e)} className="space-y-4">
                            <div className="space-y-1">
-                              <label className="text-xs font-bold text-slate-500 uppercase">Tanggal</label>
-                              <input name="date" type="date" required className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm" />
+                              <label className="text-[10px] font-bold text-slate-500 uppercase">Tanggal</label>
+                              <input name="date" type="date" defaultValue={editingItem?.date} required className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 outline-none" />
                            </div>
                            <div className="space-y-1">
-                              <label className="text-xs font-bold text-slate-500 uppercase">Waktu</label>
-                              <input name="time" type="time" defaultValue="22:00" required className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm" />
+                              <label className="text-[10px] font-bold text-slate-500 uppercase">Waktu</label>
+                              <input name="time" type="time" defaultValue={editingItem?.time || "22:00"} required className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 outline-none" />
                            </div>
                            <div className="space-y-1">
-                              <label className="text-xs font-bold text-slate-500 uppercase">Area / Blok</label>
-                              <input name="area" required placeholder="Contoh: Blok A" className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm" />
+                              <label className="text-[10px] font-bold text-slate-500 uppercase">Area / Blok</label>
+                              <input name="area" defaultValue={editingItem?.area} required placeholder="Contoh: Blok A" className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 outline-none" />
+                           </div>
+                           {editingItem && (
+                              <div className="space-y-1">
+                                 <label className="text-[10px] font-bold text-slate-500 uppercase">Status</label>
+                                 <select name="status" defaultValue={editingItem?.status} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 outline-none appearance-none">
+                                    <option value="Scheduled">Terjadwal</option>
+                                    <option value="Completed">Selesai</option>
+                                    <option value="Cancelled">Dibatalkan</option>
+                                 </select>
+                              </div>
+                           )}
+                           <div className="space-y-1">
+                              <label className="text-[10px] font-bold text-slate-500 uppercase">Catatan</label>
+                              <textarea name="notes" defaultValue={editingItem?.notes} rows={2} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 outline-none" />
+                           </div>
+                           <Button type="submit" className="w-full bg-emerald-600 shadow-lg shadow-emerald-100 rounded-xl" isLoading={isSubmitting}>{editingItem ? "Simpan Perubahan" : "Simpan Jadwal"}</Button>
+                        </form>
+                      </CardContent>
+                    </Card>
+                  ) : activeAgendaSubTab === "Umum" ? (
+                    <Card className="border-none shadow-sm border-2 border-emerald-50 h-fit overflow-hidden">
+                      <div className="h-1 bg-emerald-500" />
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-lg">{editingItem ? "Edit Agenda" : "Tambah Agenda"}</CardTitle>
+                        <CardDescription className="text-[10px] uppercase font-bold text-slate-400">Jadwal kegiatan rutin warga.</CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <form onSubmit={(e) => handleAction(editingItem ? (fd) => updateAgenda(editingItem.id, fd) : createAgenda, e)} className="space-y-4">
+                           <div className="space-y-1">
+                              <label className="text-[10px] font-bold text-slate-500 uppercase">Judul Kegiatan</label>
+                              <input name="title" defaultValue={editingItem?.title} required className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 outline-none" />
                            </div>
                            <div className="space-y-1">
-                              <label className="text-xs font-bold text-slate-500 uppercase">Catatan</label>
-                              <textarea name="notes" rows={2} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm" />
+                              <label className="text-[10px] font-bold text-slate-500 uppercase">Kategori</label>
+                              <select name="category" defaultValue={editingItem?.category || "Rapat"} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 outline-none appearance-none">
+                                 <option value="Rapat">Rapat</option>
+                                 <option value="Sosial">Sosial</option>
+                                 <option value="Kesehatan">Kesehatan</option>
+                                 <option value="Keagamaan">Keagamaan</option>
+                                 <option value="Lainnya">Lainnya</option>
+                              </select>
                            </div>
-                           <Button type="submit" className="w-full bg-emerald-600 shadow-md" isLoading={isSubmitting}>Simpan Jadwal</Button>
+                           <div className="grid grid-cols-2 gap-4">
+                              <div className="space-y-1">
+                                 <label className="text-[10px] font-bold text-slate-500 uppercase">Tanggal</label>
+                                 <input name="date" type="date" defaultValue={editingItem?.date} required className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 outline-none" />
+                              </div>
+                              <div className="space-y-1">
+                                 <label className="text-[10px] font-bold text-slate-500 uppercase">Waktu</label>
+                                 <input name="time" type="time" defaultValue={editingItem?.time} required className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 outline-none" />
+                              </div>
+                           </div>
+                           <div className="space-y-1">
+                              <label className="text-[10px] font-bold text-slate-500 uppercase">Lokasi</label>
+                              <input name="location" defaultValue={editingItem?.location} required className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 outline-none" />
+                           </div>
+                           <div className="space-y-1">
+                              <label className="text-[10px] font-bold text-slate-500 uppercase">Visibilitas</label>
+                              <select name="visibility" defaultValue={editingItem?.visibility || "Public"} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 outline-none appearance-none">
+                                 <option value="Public">Publik</option>
+                                 <option value="Warga Only">Khusus Warga</option>
+                              </select>
+                           </div>
+                           <div className="space-y-1">
+                              <label className="text-[10px] font-bold text-slate-500 uppercase">Keterangan</label>
+                              <textarea name="description" defaultValue={editingItem?.description} rows={3} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 outline-none" />
+                           </div>
+                           <Button type="submit" className="w-full bg-emerald-600 shadow-lg shadow-emerald-100 rounded-xl" isLoading={isSubmitting}>{editingItem ? "Simpan Perubahan" : "Simpan Agenda"}</Button>
                         </form>
                       </CardContent>
                     </Card>
                   ) : (
-                    <Card className="border-none shadow-sm border-2 border-emerald-50 h-fit">
-                      <CardHeader><CardTitle className="text-lg">Tambah {activeKegiatanSubTab}</CardTitle></CardHeader>
+                    <Card className="border-none shadow-sm border-2 border-emerald-50 h-fit overflow-hidden">
+                      <div className="h-1 bg-emerald-500" />
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-lg">{editingItem ? `Edit ${activeAgendaSubTab}` : `Tambah ${activeAgendaSubTab}`}</CardTitle>
+                        <CardDescription className="text-[10px] uppercase font-bold text-slate-400">Kelola kegiatan lingkungan terjadwal.</CardDescription>
+                      </CardHeader>
                       <CardContent>
-                        <form onSubmit={(e) => handleAction(createActivity, e)} className="space-y-4">
-                           <input type="hidden" name="activity_type" value={activeKegiatanSubTab} />
+                        <form onSubmit={(e) => handleAction(editingItem ? (fd) => updateActivity(editingItem.id, fd) : createActivity, e)} className="space-y-4">
+                           <input type="hidden" name="activity_type" value={activeAgendaSubTab} />
                            <div className="space-y-1">
-                              <label className="text-xs font-bold text-slate-500 uppercase">Judul Kegiatan</label>
-                              <input name="title" placeholder={`Contoh: ${activeKegiatanSubTab === 'Yasinan' ? 'Yasinan Malam Jumat' : 'Gotong Royong Lingkungan'}`} required className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 outline-none" />
+                              <label className="text-[10px] font-bold text-slate-500 uppercase">Judul Kegiatan</label>
+                              <input name="title" defaultValue={editingItem?.title} placeholder={`Contoh: ${activeAgendaSubTab === 'Yasinan' ? 'Yasinan Malam Jumat' : 'Gotong Royong Lingkungan'}`} required className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 outline-none" />
                            </div>
-                           {activeKegiatanSubTab === "Yasinan" && (
+                           {activeAgendaSubTab === "Yasinan" && (
                               <div className="space-y-1">
-                                 <label className="text-xs font-bold text-slate-500 uppercase">Tuan Rumah</label>
-                                 <input name="host_name" placeholder="Bpk. X" className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 outline-none" />
+                                 <label className="text-[10px] font-bold text-slate-500 uppercase">Tuan Rumah</label>
+                                 <input name="host_name" defaultValue={editingItem?.host_name} placeholder="Bpk. X" className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 outline-none" />
                               </div>
                            )}
                            <div className="grid grid-cols-2 gap-4">
                               <div className="space-y-1">
-                                 <label className="text-xs font-bold text-slate-500 uppercase">Tanggal</label>
-                                 <input name="date" type="date" required className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 outline-none" />
+                                 <label className="text-[10px] font-bold text-slate-500 uppercase">Tanggal</label>
+                                 <input name="date" type="date" defaultValue={editingItem?.date} required className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 outline-none" />
                               </div>
                               <div className="space-y-1">
-                                 <label className="text-xs font-bold text-slate-500 uppercase">Waktu</label>
-                                 <input name="time" type="time" required className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 outline-none" />
+                                 <label className="text-[10px] font-bold text-slate-500 uppercase">Waktu</label>
+                                 <input name="time" type="time" defaultValue={editingItem?.time} required className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 outline-none" />
                               </div>
                            </div>
                            <div className="space-y-1">
-                              <label className="text-xs font-bold text-slate-500 uppercase">Lokasi</label>
-                              <input name="location" required className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 outline-none" />
+                              <label className="text-[10px] font-bold text-slate-500 uppercase">Lokasi</label>
+                              <input name="location" defaultValue={editingItem?.location} required className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 outline-none" />
                            </div>
                            <div className="space-y-1">
-                              <label className="text-xs font-bold text-slate-500 uppercase">Target Peserta</label>
-                              <input name="required_participants" type="number" defaultValue="20" className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 outline-none" />
+                              <label className="text-[10px] font-bold text-slate-500 uppercase">Target Peserta</label>
+                              <input name="required_participants" type="number" defaultValue={editingItem?.required_participants || "20"} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 outline-none" />
                            </div>
                            <div className="space-y-1">
-                              <label className="text-xs font-bold text-slate-500 uppercase">Keterangan</label>
-                              <textarea name="description" rows={3} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 outline-none" />
+                              <label className="text-[10px] font-bold text-slate-500 uppercase">Status</label>
+                              <select name="status" defaultValue={editingItem?.status || "Scheduled"} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 outline-none appearance-none">
+                                 <option value="Scheduled">Terjadwal</option>
+                                 <option value="Completed">Selesai</option>
+                                 <option value="Cancelled">Dibatalkan</option>
+                              </select>
                            </div>
-                           <Button type="submit" className="w-full bg-emerald-600 shadow-md" isLoading={isSubmitting}>Simpan Jadwal</Button>
+                           <div className="space-y-1">
+                              <label className="text-[10px] font-bold text-slate-500 uppercase">Keterangan</label>
+                              <textarea name="description" defaultValue={editingItem?.description} rows={3} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 outline-none" />
+                           </div>
+                           <Button type="submit" className="w-full bg-emerald-600 shadow-lg shadow-emerald-100 rounded-xl" isLoading={isSubmitting}>{editingItem ? "Simpan Perubahan" : "Simpan Jadwal"}</Button>
                         </form>
                       </CardContent>
                     </Card>
