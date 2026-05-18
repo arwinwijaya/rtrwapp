@@ -46,6 +46,29 @@ type AdminTab = "overview" | "warga" | "iuran" | "agenda" | "gotong-royong" | "p
 
 const MONTHS = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
 
+const normalizeMonth = (m: string | number | undefined | null): string => {
+  if (!m) return "";
+  if (typeof m === 'number') return MONTHS[m - 1] || "";
+  
+  const monthMap: { [key: string]: string } = {
+    'january': 'Januari', 'januari': 'Januari', 'jan': 'Januari', '1': 'Januari', '01': 'Januari',
+    'february': 'Februari', 'februari': 'Februari', 'feb': 'Februari', '2': 'Februari', '02': 'Februari',
+    'march': 'Maret', 'maret': 'Maret', 'mar': 'Maret', '3': 'Maret', '03': 'Maret',
+    'april': 'April', 'apr': 'April', '4': 'April', '04': 'April',
+    'may': 'Mei', 'mei': 'Mei', '5': 'Mei', '05': 'Mei',
+    'june': 'Juni', 'juni': 'Juni', 'jun': 'Juni', '6': 'Juni', '06': 'Juni',
+    'july': 'Juli', 'juli': 'Juli', 'jul': 'Juli', '7': 'Juli', '07': 'Juli',
+    'august': 'Agustus', 'agustus': 'Agustus', 'aug': 'Agustus', '8': 'Agustus', '08': 'Agustus',
+    'september': 'September', 'sep': 'September', '9': 'September', '09': 'September',
+    'october': 'Oktober', 'oktober': 'Oktober', 'oct': 'Oktober', '10': 'Oktober',
+    'november': 'November', 'nov': 'November', '11': 'November',
+    'december': 'Desember', 'desember': 'Desember', 'dec': 'Desember', '12': 'Desember'
+  };
+  
+  const normalized = monthMap[m.toLowerCase().trim()];
+  return normalized || m.toString();
+};
+
 interface AdminClientProps {
   initialTab?: string;
   warga: any[];
@@ -87,7 +110,7 @@ export default function AdminClient({
   const getPayment = (residentId: string, month: string, year: number) => {
     return iuranPayments.find(p => 
       p.resident_id === residentId && 
-      p.iuran_periods?.month === month && 
+      normalizeMonth(p.iuran_periods?.month) === normalizeMonth(month) && 
       p.iuran_periods?.year === year &&
       p.iuran_periods?.iuran_type_id === activeIuranType
     );
@@ -96,13 +119,20 @@ export default function AdminClient({
   const getPeriod = (month: string, year: number) => {
     return iuranPeriods.find(p => 
       p.iuran_type_id === activeIuranType && 
-      p.month === month && 
+      normalizeMonth(p.month) === normalizeMonth(month) && 
       p.year === year
     );
   };
 
-  const iuranForActiveType = iuranPayments.filter(p => p.iuran_periods?.iuran_type_id === activeIuranType && p.iuran_periods?.year === selectedYear);
-  const activePeriods = iuranPeriods.filter(p => p.iuran_type_id === activeIuranType && p.year === selectedYear);
+  const iuranForActiveType = iuranPayments.filter(p => 
+    p.iuran_periods?.iuran_type_id === activeIuranType && 
+    p.iuran_periods?.year === selectedYear
+  );
+  
+  const activePeriods = iuranPeriods.filter(p => 
+    p.iuran_type_id === activeIuranType && 
+    p.year === selectedYear
+  );
   
   const lunasCount = iuranForActiveType.filter(p => p.status === 'Lunas').length;
   const verifCount = iuranForActiveType.filter(p => p.status === 'Menunggu Verifikasi').length;
@@ -529,7 +559,13 @@ export default function AdminClient({
                       <form onSubmit={(e) => handleAction(createIuranPeriod, e)} className="space-y-4">
                         <div className="space-y-1">
                           <label className="text-xs font-bold text-slate-500 uppercase tracking-tighter">Jenis Iuran</label>
-                          <select name="iuran_type_id" required className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm appearance-none outline-none focus:ring-2 focus:ring-emerald-500">
+                          <select 
+                            name="iuran_type_id" 
+                            required 
+                            className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm appearance-none outline-none focus:ring-2 focus:ring-emerald-500"
+                            value={activeIuranType}
+                            onChange={(e) => setActiveIuranType(e.target.value)}
+                          >
                             {iuranTypes.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
                           </select>
                         </div>
