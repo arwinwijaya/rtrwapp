@@ -452,6 +452,7 @@ export async function createActivity(formData: FormData) {
   const time = formData.get('time') as string
   const location = formData.get('location') as string
   const description = formData.get('description') as string
+  const host_name = formData.get('host_name') as string || null
   const required_participants = parseInt(formData.get('required_participants') as string || '0')
   const status = formData.get('status') as any || 'Scheduled'
 
@@ -468,6 +469,7 @@ export async function createActivity(formData: FormData) {
       time,
       location,
       description,
+      host_name,
       required_participants,
       status
     })
@@ -477,8 +479,121 @@ export async function createActivity(formData: FormData) {
     revalidatePath('/agenda')
     revalidatePath('/agenda/gotong-royong')
     revalidatePath('/agenda/kerja-bakti')
+    revalidatePath('/agenda/yasinan')
     revalidatePath('/agenda/ronda')
     revalidatePath('/gotong-royong')
+    return { success: true }
+  } catch (error: any) {
+    return { error: error.message }
+  }
+}
+
+/**
+ * Generate Ronda Schedule
+ */
+export async function generateRondaSchedule(formData: FormData) {
+  if (!(await checkAdmin())) return { error: 'Unauthorized' }
+
+  const start_date = formData.get('start_date') as string
+  const end_date = formData.get('end_date') as string
+  const time = formData.get('time') as string || '22:00:00'
+  const area = formData.get('area') as string || 'Lingkungan RT'
+  const residents_per_day = parseInt(formData.get('residents_per_day') as string || '4')
+
+  try {
+    const supabase = await createClient()
+    const { data: userAuth } = await supabase.auth.getUser()
+    const { data: adminProfile } = await supabase.from('profiles').select('housing_id').eq('id', userAuth.user?.id || '').single()
+    const housing_id = adminProfile?.housing_id
+
+    // 1. Get all active residents
+    const { data: residents, error: resError } = await supabase
+      .from('residents')
+      .select('id')
+      .eq('status', 'Aktif')
+      .eq('housing_id', housing_id)
+    
+    if (resError) throw resError
+    if (!residents || residents.length === 0) throw new Error('Tidak ada warga aktif untuk dijadwalkan.')
+
+    // 2. Generate dates array
+    const start = new Date(start_date)
+    const end = new Date(end_date)
+    const dates: string[] = []
+    for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+      dates.push(new Date(d).toISOString().split('T')[0])
+    }
+
+    // 3. Create schedules and assignments
+    let residentIdx = 0
+    for (const date of dates) {
+      // Create schedule
+      const { data: schedule, error: sError } = await supabase
+        .from('ronda_schedules')
+        .insert({
+          housing_id,
+          date,
+          time,
+          area,
+          status: 'Scheduled'
+        })
+        .select()
+        .single()
+
+      if (sError) throw sError
+
+      // Assign residents (rotation)
+      const assignments = []
+      for (let i = 0; i < residents_per_day; i++) {
+        const resident = residents[residentIdx % residents.length]
+        assignments.push({
+          ronda_schedule_id: schedule.id,
+          resident_id: resident.id,
+          attendance_status: 'Belum Konfirmasi'
+        })
+        residentIdx++
+      }
+
+      const { error: aError } = await supabase.from('ronda_assignments').insert(assignments)
+      if (aError) throw aError
+    }
+
+    revalidatePath('/admin')
+    revalidatePath('/agenda/ronda')
+    return { success: true }
+  } catch (error: any) {
+    return { error: error.message }
+  }
+}
+
+/**
+ * Create Single Ronda Schedule
+ */
+export async function createRondaSchedule(formData: FormData) {
+  if (!(await checkAdmin())) return { error: 'Unauthorized' }
+
+  const date = formData.get('date') as string
+  const time = formData.get('time') as string || '22:00:00'
+  const area = formData.get('area') as string
+  const notes = formData.get('notes') as string
+
+  try {
+    const supabase = await createClient()
+    const { data: user } = await supabase.auth.getUser()
+    const { data: profile } = await supabase.from('profiles').select('housing_id').eq('id', user.user?.id || '').single()
+
+    const { error } = await supabase.from('ronda_schedules').insert({
+      housing_id: profile?.housing_id,
+      date,
+      time,
+      area,
+      notes,
+      status: 'Scheduled'
+    })
+
+    if (error) throw error
+    revalidatePath('/admin')
+    revalidatePath('/agenda/ronda')
     return { success: true }
   } catch (error: any) {
     return { error: error.message }

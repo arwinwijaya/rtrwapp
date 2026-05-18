@@ -8,7 +8,7 @@ export type AnnouncementPriority = "Normal" | "Penting" | "Mendesak";
 export type VisibilityType = "Public" | "Warga Only";
 export type GotongRoyongStatus = "Scheduled" | "In Progress" | "Completed" | "Cancelled";
 export type AttendanceStatus = "Hadir" | "Izin" | "Alpa" | "Akan Hadir" | "Tidak Hadir" | "Belum Konfirmasi";
-export type ActivityType = "Gotong Royong" | "Kerja Bakti" | "Ronda";
+export type ActivityType = "Gotong Royong" | "Kerja Bakti" | "Ronda" | "Yasinan";
 
 export interface Agenda {
   id: string;
@@ -30,6 +30,7 @@ export interface GotongRoyong {
   time: string;
   location: string;
   description: string;
+  host_name?: string;
   required_participants: number;
   status: GotongRoyongStatus;
 }
@@ -39,6 +40,25 @@ export interface GotongRoyongAttendance {
   gotong_royong_id: string;
   resident_id: string;
   status: AttendanceStatus;
+}
+
+export interface RondaSchedule {
+  id: string;
+  date: string;
+  time: string;
+  area: string;
+  status: GotongRoyongStatus;
+  notes?: string;
+  assignments?: RondaAssignment[];
+}
+
+export interface RondaAssignment {
+  id: string;
+  ronda_schedule_id: string;
+  resident_id: string;
+  attendance_status: AttendanceStatus;
+  notes?: string;
+  resident?: Warga;
 }
 
 export interface IuranType {

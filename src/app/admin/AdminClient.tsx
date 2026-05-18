@@ -42,7 +42,9 @@ import {
   updateHousingProfile,
   verifyPayment,
   rejectPayment,
-  updatePaymentStatus
+  updatePaymentStatus,
+  generateRondaSchedule,
+  createRondaSchedule
 } from "./actions";
 
 type AdminTab = "overview" | "warga" | "iuran" | "agenda" | "gotong-royong" | "pengumuman" | "laporan" | "kontak" | "profil";
@@ -84,6 +86,8 @@ interface AdminClientProps {
   laporan: any[];
   kontak: any[];
   profil: any;
+  rondaSchedules: any[];
+  rondaAssignments: any[];
 }
 
 export default function AdminClient({
@@ -97,11 +101,16 @@ export default function AdminClient({
   pengumuman,
   laporan,
   kontak,
-  profil
+  profil,
+  rondaSchedules,
+  rondaAssignments
 }: AdminClientProps) {
   const [activeTab, setActiveTab] = useState<AdminTab>(initialTab as AdminTab);  const [searchTerm, setSearchTerm] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error' | 'warning', text: string } | null>(null);
+
+  // Ronda States
+  const [isGeneratingRonda, setIsGeneratingRonda] = useState(false);
 
   // Iuran Matrix States
   const [activeIuranType, setActiveIuranType] = useState<string>(iuranTypes[0]?.id || "");
@@ -789,16 +798,16 @@ export default function AdminClient({
            </div>
         )}
 
-        {/* 5. KEGIATAN TAB (Gotong Royong, Kerja Bakti, Ronda) */}
+        {/* 5. KEGIATAN TAB (Gotong Royong, Yasinan, Ronda) */}
         {activeTab === "gotong-royong" && (
            <div className="space-y-8 animate-in fade-in duration-500">
              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
                   <h1 className="text-2xl font-bold text-slate-900">Kegiatan Warga</h1>
-                  <p className="text-sm text-slate-500">Kelola jadwal gotong royong, kerja bakti, dan ronda.</p>
+                  <p className="text-sm text-slate-500">Kelola jadwal gotong royong, yasinan, dan ronda harian.</p>
                 </div>
                 <div className="flex bg-slate-100 p-1 rounded-xl w-fit">
-                   {["Gotong Royong", "Kerja Bakti", "Ronda"].map(sub => (
+                   {["Gotong Royong", "Yasinan", "Ronda"].map(sub => (
                      <button
                        key={sub}
                        onClick={() => setActiveKegiatanSubTab(sub)}
@@ -815,66 +824,192 @@ export default function AdminClient({
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
                <div className="lg:col-span-2 space-y-4">
-                  {filteredGotongRoyong.length > 0 ? filteredGotongRoyong.map(item => (
-                    <Card key={item.id} className="border-none shadow-sm">
-                      <CardContent className="p-6 flex items-center justify-between gap-6">
-                        <div className="flex items-center gap-4">
-                           <div className="h-10 w-10 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center shrink-0">
-                              {item.activity_type === "Kerja Bakti" ? <Hammer size={20} /> : item.activity_type === "Ronda" ? <ShieldAlert size={20} /> : <Users size={20} />}
-                           </div>
-                           <div>
-                              <h3 className="font-bold text-slate-900 text-sm">{item.title}</h3>
-                              <p className="text-[10px] text-slate-400 font-bold uppercase">{item.date} | {item.time}</p>
-                           </div>
-                        </div>
-                        <div className="flex items-center gap-4">
-                           <Badge variant={item.status === 'Completed' ? 'success' : item.status === 'Cancelled' ? 'danger' : 'warning'}>{item.status}</Badge>
-                           <button onClick={() => handleDelete('gotong_royong', item.id)} className="p-2 text-slate-400 hover:text-red-600"><Trash2 size={16} /></button>
-                        </div>
-                      </CardContent>
+                  {activeKegiatanSubTab === "Ronda" ? (
+                    <Card className="border-none shadow-sm overflow-hidden">
+                       <CardHeader className="pb-4 border-b border-slate-50 flex justify-between items-center">
+                          <CardTitle className="text-sm font-bold uppercase tracking-wider">Jadwal Ronda Harian</CardTitle>
+                          <Button size="sm" variant="outline" className="text-xs font-bold" onClick={() => setIsGeneratingRonda(!isGeneratingRonda)}>
+                             {isGeneratingRonda ? "Lihat Jadwal" : "Auto-Generate Ronda"}
+                          </Button>
+                       </CardHeader>
+                       {isGeneratingRonda ? (
+                          <CardContent className="p-6">
+                             <form onSubmit={(e) => handleAction(generateRondaSchedule, e)} className="space-y-4 bg-slate-50 p-6 rounded-2xl border border-slate-100">
+                                <div className="grid grid-cols-2 gap-4">
+                                   <div className="space-y-1">
+                                      <label className="text-[10px] font-bold text-slate-500 uppercase">Tanggal Mulai</label>
+                                      <input name="start_date" type="date" required className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-sm" />
+                                   </div>
+                                   <div className="space-y-1">
+                                      <label className="text-[10px] font-bold text-slate-500 uppercase">Tanggal Selesai</label>
+                                      <input name="end_date" type="date" required className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-sm" />
+                                   </div>
+                                </div>
+                                <div className="grid grid-cols-2 gap-4">
+                                   <div className="space-y-1">
+                                      <label className="text-[10px] font-bold text-slate-500 uppercase">Waktu Ronda</label>
+                                      <input name="time" type="time" defaultValue="22:00" className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-sm" />
+                                   </div>
+                                   <div className="space-y-1">
+                                      <label className="text-[10px] font-bold text-slate-500 uppercase">Petugas per Hari</label>
+                                      <input name="residents_per_day" type="number" defaultValue="4" className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-sm" />
+                                   </div>
+                                </div>
+                                <div className="space-y-1">
+                                   <label className="text-[10px] font-bold text-slate-500 uppercase">Area / Blok</label>
+                                   <input name="area" defaultValue="Lingkungan RT" className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-sm" />
+                                </div>
+                                <div className="p-3 bg-amber-50 rounded-xl border border-amber-100 mb-2">
+                                   <p className="text-[10px] text-amber-700 leading-tight flex gap-2">
+                                      <AlertCircle size={14} className="shrink-0" />
+                                      Sistem akan merotasi warga aktif secara otomatis untuk periode yang dipilih.
+                                   </p>
+                                </div>
+                                <Button type="submit" className="w-full bg-slate-900 hover:bg-slate-800 rounded-xl shadow-lg" isLoading={isSubmitting}>Generate Sekarang</Button>
+                             </form>
+                          </CardContent>
+                       ) : (
+                          <div className="overflow-x-auto">
+                             <table className="w-full text-sm text-left">
+                                <thead className="bg-slate-50/50 text-slate-400">
+                                   <tr>
+                                      <th className="px-6 py-4 font-bold uppercase text-[10px]">Tanggal</th>
+                                      <th className="px-6 py-4 font-bold uppercase text-[10px]">Petugas Ronda</th>
+                                      <th className="px-6 py-4 font-bold uppercase text-[10px] text-right">Aksi</th>
+                                   </tr>
+                                </thead>
+                                <tbody className="divide-y divide-slate-100">
+                                   {rondaSchedules.length > 0 ? rondaSchedules.map(schedule => {
+                                      const assignments = rondaAssignments.filter(a => a.ronda_schedule_id === schedule.id);
+                                      return (
+                                         <tr key={schedule.id} className="hover:bg-slate-50 transition-colors">
+                                            <td className="px-6 py-4">
+                                               <p className="font-bold text-slate-900">{schedule.date}</p>
+                                               <p className="text-[10px] text-slate-400 font-bold">{schedule.time} WIB | {schedule.area}</p>
+                                            </td>
+                                            <td className="px-6 py-4">
+                                               <div className="flex flex-wrap gap-1">
+                                                  {assignments.map(a => (
+                                                     <Badge key={a.id} variant="outline" className="text-[9px] bg-slate-50 border-slate-200 text-slate-600">
+                                                        {a.residents?.name || 'Warga'}
+                                                     </Badge>
+                                                  ))}
+                                               </div>
+                                            </td>
+                                            <td className="px-6 py-4 text-right">
+                                               <button onClick={() => handleDelete('ronda_schedules', schedule.id)} className="p-2 text-slate-400 hover:text-red-600"><Trash2 size={16} /></button>
+                                            </td>
+                                         </tr>
+                                      );
+                                   }) : (
+                                      <tr>
+                                         <td colSpan={3} className="px-6 py-10 text-center text-slate-400 italic">Belum ada jadwal ronda.</td>
+                                      </tr>
+                                   )}
+                                </tbody>
+                             </table>
+                          </div>
+                       )}
                     </Card>
-                  )) : (
-                    <div className="text-center py-20 bg-slate-50 rounded-2xl border-2 border-dashed border-slate-200">
-                       <p className="text-slate-400 font-medium text-sm">Belum ada jadwal {activeKegiatanSubTab}.</p>
-                    </div>
+                  ) : (
+                    <>
+                      {filteredGotongRoyong.length > 0 ? filteredGotongRoyong.map(item => (
+                        <Card key={item.id} className="border-none shadow-sm">
+                          <CardContent className="p-6 flex items-center justify-between gap-6">
+                            <div className="flex items-center gap-4">
+                               <div className="h-10 w-10 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center shrink-0">
+                                  {item.activity_type === "Yasinan" ? <Calendar size={20} /> : <Users size={20} />}
+                               </div>
+                               <div>
+                                  <h3 className="font-bold text-slate-900 text-sm">{item.title}</h3>
+                                  <p className="text-[10px] text-slate-400 font-bold uppercase">{item.date} | {item.time} {item.host_name ? `| Host: ${item.host_name}` : ''}</p>
+                               </div>
+                            </div>
+                            <div className="flex items-center gap-4">
+                               <Badge variant={item.status === 'Completed' ? 'success' : item.status === 'Cancelled' ? 'danger' : 'warning'}>{item.status}</Badge>
+                               <button onClick={() => handleDelete('gotong_royong', item.id)} className="p-2 text-slate-400 hover:text-red-600"><Trash2 size={16} /></button>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      )) : (
+                        <div className="text-center py-20 bg-slate-50 rounded-2xl border-2 border-dashed border-slate-200">
+                           <p className="text-slate-400 font-medium text-sm">Belum ada jadwal {activeKegiatanSubTab}.</p>
+                        </div>
+                      )}
+                    </>
                   )}
                </div>
 
-               <Card className="border-none shadow-sm border-2 border-emerald-50 h-fit">
-                  <CardHeader><CardTitle className="text-lg">Tambah {activeKegiatanSubTab}</CardTitle></CardHeader>
-                  <CardContent>
-                    <form onSubmit={(e) => handleAction(createActivity, e)} className="space-y-4">
-                       <input type="hidden" name="activity_type" value={activeKegiatanSubTab} />
-                       <div className="space-y-1">
-                          <label className="text-xs font-bold text-slate-500 uppercase">Judul Kegiatan</label>
-                          <input name="title" placeholder={`Contoh: ${activeKegiatanSubTab === 'Ronda' ? 'Ronda Malam Blok A' : activeKegiatanSubTab === 'Kerja Bakti' ? 'Kerja Bakti Saluran Air' : 'Pembersihan Selokan'}`} required className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 outline-none" />
-                       </div>
-                       <div className="grid grid-cols-2 gap-4">
-                          <div className="space-y-1">
-                             <label className="text-xs font-bold text-slate-500 uppercase">Tanggal</label>
-                             <input name="date" type="date" required className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 outline-none" />
-                          </div>
-                          <div className="space-y-1">
-                             <label className="text-xs font-bold text-slate-500 uppercase">Waktu</label>
-                             <input name="time" type="time" required className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 outline-none" />
-                          </div>
-                       </div>
-                       <div className="space-y-1">
-                          <label className="text-xs font-bold text-slate-500 uppercase">Lokasi</label>
-                          <input name="location" required className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 outline-none" />
-                       </div>
-                       <div className="space-y-1">
-                          <label className="text-xs font-bold text-slate-500 uppercase">Target Peserta</label>
-                          <input name="required_participants" type="number" defaultValue="20" className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 outline-none" />
-                       </div>
-                       <div className="space-y-1">
-                          <label className="text-xs font-bold text-slate-500 uppercase">Keterangan</label>
-                          <textarea name="description" rows={3} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 outline-none" />
-                       </div>
-                       <Button type="submit" className="w-full bg-emerald-600 shadow-md" isLoading={isSubmitting}>Simpan Jadwal</Button>
-                    </form>
-                  </CardContent>
-               </Card>
+               <div className="space-y-6">
+                  {activeKegiatanSubTab === "Ronda" ? (
+                    <Card className="border-none shadow-sm border-2 border-emerald-50 h-fit">
+                      <CardHeader><CardTitle className="text-lg">Tambah Ronda Manual</CardTitle></CardHeader>
+                      <CardContent>
+                        <form onSubmit={(e) => handleAction(createRondaSchedule, e)} className="space-y-4">
+                           <div className="space-y-1">
+                              <label className="text-xs font-bold text-slate-500 uppercase">Tanggal</label>
+                              <input name="date" type="date" required className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm" />
+                           </div>
+                           <div className="space-y-1">
+                              <label className="text-xs font-bold text-slate-500 uppercase">Waktu</label>
+                              <input name="time" type="time" defaultValue="22:00" required className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm" />
+                           </div>
+                           <div className="space-y-1">
+                              <label className="text-xs font-bold text-slate-500 uppercase">Area / Blok</label>
+                              <input name="area" required placeholder="Contoh: Blok A" className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm" />
+                           </div>
+                           <div className="space-y-1">
+                              <label className="text-xs font-bold text-slate-500 uppercase">Catatan</label>
+                              <textarea name="notes" rows={2} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm" />
+                           </div>
+                           <Button type="submit" className="w-full bg-emerald-600 shadow-md" isLoading={isSubmitting}>Simpan Jadwal</Button>
+                        </form>
+                      </CardContent>
+                    </Card>
+                  ) : (
+                    <Card className="border-none shadow-sm border-2 border-emerald-50 h-fit">
+                      <CardHeader><CardTitle className="text-lg">Tambah {activeKegiatanSubTab}</CardTitle></CardHeader>
+                      <CardContent>
+                        <form onSubmit={(e) => handleAction(createActivity, e)} className="space-y-4">
+                           <input type="hidden" name="activity_type" value={activeKegiatanSubTab} />
+                           <div className="space-y-1">
+                              <label className="text-xs font-bold text-slate-500 uppercase">Judul Kegiatan</label>
+                              <input name="title" placeholder={`Contoh: ${activeKegiatanSubTab === 'Yasinan' ? 'Yasinan Malam Jumat' : 'Gotong Royong Lingkungan'}`} required className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 outline-none" />
+                           </div>
+                           {activeKegiatanSubTab === "Yasinan" && (
+                              <div className="space-y-1">
+                                 <label className="text-xs font-bold text-slate-500 uppercase">Tuan Rumah</label>
+                                 <input name="host_name" placeholder="Bpk. X" className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 outline-none" />
+                              </div>
+                           )}
+                           <div className="grid grid-cols-2 gap-4">
+                              <div className="space-y-1">
+                                 <label className="text-xs font-bold text-slate-500 uppercase">Tanggal</label>
+                                 <input name="date" type="date" required className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 outline-none" />
+                              </div>
+                              <div className="space-y-1">
+                                 <label className="text-xs font-bold text-slate-500 uppercase">Waktu</label>
+                                 <input name="time" type="time" required className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 outline-none" />
+                              </div>
+                           </div>
+                           <div className="space-y-1">
+                              <label className="text-xs font-bold text-slate-500 uppercase">Lokasi</label>
+                              <input name="location" required className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 outline-none" />
+                           </div>
+                           <div className="space-y-1">
+                              <label className="text-xs font-bold text-slate-500 uppercase">Target Peserta</label>
+                              <input name="required_participants" type="number" defaultValue="20" className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 outline-none" />
+                           </div>
+                           <div className="space-y-1">
+                              <label className="text-xs font-bold text-slate-500 uppercase">Keterangan</label>
+                              <textarea name="description" rows={3} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 outline-none" />
+                           </div>
+                           <Button type="submit" className="w-full bg-emerald-600 shadow-md" isLoading={isSubmitting}>Simpan Jadwal</Button>
+                        </form>
+                      </CardContent>
+                    </Card>
+                  )}
+               </div>
             </div>
            </div>
         )}

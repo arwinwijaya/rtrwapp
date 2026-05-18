@@ -20,7 +20,8 @@ import {
   User,
   ChevronDown,
   Hammer,
-  ShieldAlert
+  ShieldAlert,
+  BookOpen
 } from "lucide-react";
 import { clsx } from "clsx";
 import { Button } from "@/components/ui/Button";
@@ -34,8 +35,8 @@ const navigation = [
     icon: CalendarDays,
     submenu: [
       { name: "Agenda & Kegiatan", href: "/agenda", icon: CalendarDays },
-      { name: "Gotong Royong", href: "/agenda/gotong-royong", icon: Users },
-      { name: "Kerja Bakti", href: "/agenda/kerja-bakti", icon: Hammer },
+      { name: "Gotong Royong", href: "/agenda/gotong-royong", icon: Hammer },
+      { name: "Yasinan", href: "/agenda/yasinan", icon: BookOpen },
       { name: "Ronda", href: "/agenda/ronda", icon: ShieldAlert },
     ]
   },

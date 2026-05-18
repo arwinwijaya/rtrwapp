@@ -39,7 +39,9 @@ export default async function AdminPage({
     { data: pengumuman },
     { data: laporan },
     { data: kontak },
-    { data: housingProfil }
+    { data: housingProfil },
+    { data: rondaSchedules },
+    { data: rondaAssignments }
   ] = await Promise.all([
     supabase.from("residents").select("*").order("name", { ascending: true }),
     supabase.from("iuran_types").select("*").order("display_order", { ascending: true }),
@@ -51,6 +53,8 @@ export default async function AdminPage({
     supabase.from("reports").select("*").order("created_at", { ascending: false }),
     supabase.from("emergency_contacts").select("*").order("display_order", { ascending: true }),
     supabase.from("housing_profiles").select("*").single(),
+    supabase.from("ronda_schedules").select("*").order("date", { ascending: false }),
+    supabase.from("ronda_assignments").select("*, residents(*)"),
   ]);
 
   return (
@@ -66,6 +70,8 @@ export default async function AdminPage({
       laporan={laporan || []}
       kontak={kontak || []}
       profil={housingProfil || {}}
+      rondaSchedules={rondaSchedules || []}
+      rondaAssignments={rondaAssignments || []}
     />
   );
 }

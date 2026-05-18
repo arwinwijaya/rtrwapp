@@ -36,6 +36,7 @@ export default async function DashboardPage() {
   let resident: any = null;
   let ownIuran: any[] = [];
   let ownReports: any[] = [];
+  let ownRonda: any[] = [];
   
   if (residentId) {
     const { data: res } = await supabase.from("residents").select("*").eq("id", residentId).single();
@@ -46,6 +47,9 @@ export default async function DashboardPage() {
     
     const { data: reports } = await supabase.from("reports").select("*").eq("resident_id", residentId).order("created_at", { ascending: false }).limit(5);
     ownReports = reports || [];
+
+    const { data: ronda } = await supabase.from("ronda_assignments").select("*, ronda_schedules(*)").eq("resident_id", residentId).gte("ronda_schedules.date", new Date().toISOString().split("T")[0]).order("created_at", { ascending: false }).limit(1);
+    ownRonda = ronda || [];
   }
 
   // Admin Data
@@ -54,8 +58,8 @@ export default async function DashboardPage() {
   let openReportsCount = 0;
   let activeAgendasCount = 0;
   let gotongRoyongCount = 0;
-  let kerjaBaktiCount = 0;
-  let rondaCount = 0;
+  let yasinanCount = 0;
+  let rondaTodayCount = 0;
   
   if (isAdmin) {
     const today = new Date().toISOString().split("T")[0];
@@ -70,10 +74,10 @@ export default async function DashboardPage() {
 
     const { count: grCount } = await supabase.from("gotong_royong").select("*", { count: "exact", head: true }).eq("activity_type", "Gotong Royong").gte("date", today);
     gotongRoyongCount = grCount || 0;
-    const { count: kbCount } = await supabase.from("gotong_royong").select("*", { count: "exact", head: true }).eq("activity_type", "Kerja Bakti").gte("date", today);
-    kerjaBaktiCount = kbCount || 0;
-    const { count: rdCount } = await supabase.from("gotong_royong").select("*", { count: "exact", head: true }).eq("activity_type", "Ronda").gte("date", today);
-    rondaCount = rdCount || 0;
+    const { count: ysCount } = await supabase.from("gotong_royong").select("*", { count: "exact", head: true }).eq("activity_type", "Yasinan").gte("date", today);
+    yasinanCount = ysCount || 0;
+    const { count: rdCount } = await supabase.from("ronda_schedules").select("*", { count: "exact", head: true }).eq("date", today);
+    rondaTodayCount = rdCount || 0;
   }
 
   // Shared Data

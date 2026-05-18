@@ -52,7 +52,7 @@ CREATE TYPE public.announcement_priority AS ENUM ('Normal', 'Penting', 'Mendesak
 CREATE TYPE public.attendance_status AS ENUM ('Hadir', 'Izin', 'Alpa', 'Akan Hadir', 'Tidak Hadir', 'Belum Konfirmasi');
 CREATE TYPE public.visibility_type AS ENUM ('Public', 'Warga Only');
 CREATE TYPE public.gotong_royong_status AS ENUM ('Scheduled', 'In Progress', 'Completed', 'Cancelled');
-CREATE TYPE public.activity_type AS ENUM ('Gotong Royong', 'Kerja Bakti', 'Ronda');
+CREATE TYPE public.activity_type AS ENUM ('Gotong Royong', 'Kerja Bakti', 'Ronda', 'Yasinan');
 
 -- 3. Utility function for updated_at
 CREATE OR REPLACE FUNCTION public.update_updated_at_column()
@@ -141,6 +141,7 @@ CREATE TABLE public.gotong_royong (
   time TIME,
   location TEXT,
   description TEXT,
+  host_name TEXT,
   required_participants INTEGER DEFAULT 0,
   status public.gotong_royong_status DEFAULT 'Scheduled',
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
@@ -156,6 +157,30 @@ CREATE TABLE public.gotong_royong_attendance (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   UNIQUE (gotong_royong_id, resident_id)
+);
+
+-- Ronda Harian
+CREATE TABLE public.ronda_schedules (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  housing_id UUID REFERENCES public.housing_profiles(id) ON DELETE CASCADE,
+  date DATE NOT NULL,
+  time TIME DEFAULT '22:00:00',
+  area TEXT,
+  status public.gotong_royong_status DEFAULT 'Scheduled',
+  notes TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+CREATE TABLE public.ronda_assignments (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  ronda_schedule_id UUID REFERENCES public.ronda_schedules(id) ON DELETE CASCADE,
+  resident_id UUID REFERENCES public.residents(id) ON DELETE CASCADE,
+  attendance_status public.attendance_status DEFAULT 'Belum Konfirmasi',
+  notes TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  UNIQUE (ronda_schedule_id, resident_id)
 );
 
 CREATE TABLE public.iuran_types (
@@ -323,6 +348,8 @@ ALTER TABLE public.iuran_payments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.announcements ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.reports ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.emergency_contacts ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.ronda_schedules ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.ronda_assignments ENABLE ROW LEVEL SECURITY;
 
 -- 8. Private admin helper. Not exposed as public RPC.
 CREATE OR REPLACE FUNCTION private.is_admin()
@@ -496,6 +523,25 @@ USING (is_active = true);
 
 CREATE POLICY "Admin manage emergency contacts"
 ON public.emergency_contacts FOR ALL
+USING (private.is_admin())
+WITH CHECK (private.is_admin());
+
+-- Ronda Policies
+CREATE POLICY "Public read ronda schedules"
+ON public.ronda_schedules FOR SELECT
+USING (true);
+
+CREATE POLICY "Admin manage ronda schedules"
+ON public.ronda_schedules FOR ALL
+USING (private.is_admin())
+WITH CHECK (private.is_admin());
+
+CREATE POLICY "Public read ronda assignments"
+ON public.ronda_assignments FOR SELECT
+USING (true);
+
+CREATE POLICY "Admin manage ronda assignments"
+ON public.ronda_assignments FOR ALL
 USING (private.is_admin())
 WITH CHECK (private.is_admin());
 
@@ -681,7 +727,13 @@ VALUES
 ('a1111111-1111-4111-8111-111111111111', 'Pembersihan Selokan Blok A & B', 'Gotong Royong', CURRENT_DATE + INTERVAL '14 days', '07:00:00', 'Sepanjang Jalan Utama Blok A & B', 'Membersihkan saluran air mengantisipasi musim hujan.', 20, 'Scheduled'),
 ('a1111111-1111-4111-8111-111111111111', 'Perapihan Taman Warga', 'Gotong Royong', CURRENT_DATE + INTERVAL '21 days', '07:30:00', 'Taman Tengah Perumahan', 'Potong rumput, bersihkan taman, dan cat ulang bangku taman.', 15, 'Scheduled'),
 ('a1111111-1111-4111-8111-111111111111', 'Kerja Bakti Saluran Air', 'Kerja Bakti', CURRENT_DATE + INTERVAL '5 days', '08:00:00', 'Blok C dan D', 'Memperbaiki saluran air yang tersumbat.', 10, 'Scheduled'),
-('a1111111-1111-4111-8111-111111111111', 'Ronda Malam Blok A', 'Ronda', CURRENT_DATE + INTERVAL '1 days', '22:00:00', 'Pos Security Blok A', 'Jadwal ronda rutin untuk keamanan lingkungan.', 4, 'Scheduled');
+('a1111111-1111-4111-8111-111111111111', 'Yasinan Malam Jumat', 'Yasinan', CURRENT_DATE + INTERVAL '3 days', '19:30:00', 'Rumah Bpk. Budi Santoso (Blok A/12)', 'Kegiatan yasinan rutin malam jumat.', 0, 'Scheduled');
+
+-- Ronda seeds
+INSERT INTO public.ronda_schedules (housing_id, date, time, area)
+VALUES
+('a1111111-1111-4111-8111-111111111111', CURRENT_DATE, '22:00:00', 'Pos Security Blok A'),
+('a1111111-1111-4111-8111-111111111111', CURRENT_DATE + INTERVAL '1 day', '22:00:00', 'Pos Security Blok A');
 
 INSERT INTO public.iuran_periods (id, housing_id, iuran_type_id, title, month, year, amount, due_date, description, status)
 VALUES

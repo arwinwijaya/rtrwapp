@@ -1,14 +1,8 @@
 import React from "react";
-import GotongRoyongClient from "../../gotong-royong/GotongRoyongClient";
-import { getGotongRoyong } from "@/lib/data/gotongRoyong";
+import RondaClient from "./RondaClient";
+import { getRondaSchedules } from "@/lib/data/ronda";
 
 export default async function RondaPage() {
-  const data = await getGotongRoyong("Ronda");
-  return (
-    <GotongRoyongClient 
-      gotongRoyong={data} 
-      title="Jadwal Ronda" 
-      subtitle="Jadwal keamanan lingkungan warga." 
-    />
-  );
+  const data = await getRondaSchedules();
+  return <RondaClient schedules={data} />;
 }
