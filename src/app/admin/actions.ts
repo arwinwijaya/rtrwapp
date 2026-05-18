@@ -155,17 +155,38 @@ export async function updateReportStatus(id: string, status: string, admin_notes
 /**
  * Verify Payment
  */
-export async function verifyPayment(id: string, admin_id: string, notes?: string) {
+export async function verifyPayment(id: string, notes?: string) {
   if (!(await checkAdmin())) return { error: 'Unauthorized' }
 
   const supabase = await createClient()
-  const { error } = await supabase.from('iuran_payments').update({ 
-    status: 'Lunas', 
-    verified_by: admin_id, 
-    verified_at: new Date().toISOString(),
-    notes: notes 
-  }).eq('id', id)
+  const { data: { user } } = await supabase.auth.getUser()
+  const admin_id = user?.id
 
+  const { error } = await supabase.from('iuran_payments').update({
+    status: 'Lunas',
+    verified_by: admin_id,
+    verified_at: new Date().toISOString(),
+    notes: notes
+  }).eq('id', id)
+  if (error) return { error: error.message }
+  
+  revalidatePath('/admin')
+  revalidatePath('/iuran')
+  return { success: true }
+}
+
+/**
+ * Reject Payment
+ */
+export async function rejectPayment(id: string, notes: string) {
+  if (!(await checkAdmin())) return { error: 'Unauthorized' }
+
+  const supabase = await createClient()
+  const { error } = await supabase.from('iuran_payments').update({
+    status: 'Ditolak',
+    notes: notes
+  }).eq('id', id)
+  
   if (error) return { error: error.message }
   
   revalidatePath('/admin')

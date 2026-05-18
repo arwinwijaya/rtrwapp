@@ -10,12 +10,12 @@ export async function getGotongRoyong(): Promise<GotongRoyong[]> {
       .select('*')
       .order('date', { ascending: true })
 
-    if (error || !data || data.length === 0) {
-      return mockGotongRoyong as GotongRoyong[]
+    if (error || !data) {
+      return []
     }
 
     return data as GotongRoyong[]
   } catch (error) {
-    return mockGotongRoyong as GotongRoyong[]
+    return []
   }
 }

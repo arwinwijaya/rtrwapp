@@ -11,11 +11,11 @@ export async function getHousingProfile() {
       .single()
 
     if (error || !data) {
-      return mockHousingProfile
+      return {} as any
     }
 
     return data
   } catch (error) {
-    return mockHousingProfile
+    return {} as any
   }
 }

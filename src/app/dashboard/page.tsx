@@ -1,67 +1,176 @@
-"use client";
-
 import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
+import { Button } from "@/components/ui/Button";
 import { 
   Calendar, 
   Users, 
   Wallet, 
   Megaphone, 
-  FileWarning, 
+  FileWarning,
   ArrowRight,
   Clock,
   MapPin,
-  ShieldAlert
+  ShieldAlert,
+  CheckCircle,
+  XCircle,
+  Plus
 } from "lucide-react";
 import Link from "next/link";
-import { 
-  mockAgendas, 
-  mockPengumuman, 
-  mockIuran, 
-  mockGotongRoyong, 
-  mockLaporan,
-  mockKontakDarurat
-} from "@/lib/mock-data";
+import { createClient } from "@/lib/supabase/server";
+import { redirect } from "next/navigation";
 
-export default function DashboardPage() {
-  // Summary counts (in a real app, these would be calculated from real data)
-  const stats = [
-    { name: "Agenda Terdekat", value: "2", icon: Calendar, color: "text-emerald-600", bg: "bg-emerald-100" },
-    { name: "Gotong Royong", value: "1", icon: Users, color: "text-blue-600", bg: "bg-blue-100" },
-    { name: "Iuran Belum Bayar", value: "1", icon: Wallet, color: "text-amber-600", bg: "bg-amber-100" },
-    { name: "Laporan Aktif", value: "2", icon: FileWarning, color: "text-red-600", bg: "bg-red-100" },
-  ];
+export default async function DashboardPage() {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) {
+    redirect("/login");
+  }
+
+  const { data: profile } = await supabase.from("profiles").select("*").eq("id", user.id).single();
+  const isAdmin = profile?.role === "RT Admin" || profile?.role === "RW Admin";
+  const residentId = profile?.resident_id;
+
+  // Warga Data
+  let resident: any = null;
+  let ownIuran: any[] = [];
+  let ownReports: any[] = [];
+  
+  if (residentId) {
+    const { data: res } = await supabase.from("residents").select("*").eq("id", residentId).single();
+    resident = res;
+    
+    const { data: iuran } = await supabase.from("iuran_payments").select("*, iuran_periods(title, amount)").eq("resident_id", residentId).order("created_at", { ascending: false }).limit(5);
+    ownIuran = iuran || [];
+    
+    const { data: reports } = await supabase.from("reports").select("*").eq("resident_id", residentId).order("created_at", { ascending: false }).limit(5);
+    ownReports = reports || [];
+  }
+
+  // Admin Data
+  let wargaCount = 0;
+  let verificationCount = 0;
+  let openReportsCount = 0;
+  let activeAgendasCount = 0;
+  
+  if (isAdmin) {
+    const { count: wCount } = await supabase.from("residents").select("*", { count: "exact", head: true });
+    wargaCount = wCount || 0;
+    const { count: vCount } = await supabase.from("iuran_payments").select("*", { count: "exact", head: true }).eq("status", "Menunggu Verifikasi");
+    verificationCount = vCount || 0;
+    const { count: rCount } = await supabase.from("reports").select("*", { count: "exact", head: true }).eq("status", "Open");
+    openReportsCount = rCount || 0;
+    const { count: aCount } = await supabase.from("agendas").select("*", { count: "exact", head: true }).gte("date", new Date().toISOString().split("T")[0]);
+    activeAgendasCount = aCount || 0;
+  }
+
+  // Shared Data
+  const { data: agendas } = await supabase.from("agendas").select("*").gte("date", new Date().toISOString().split("T")[0]).order("date", { ascending: true }).limit(3);
+  const { data: gotongRoyong } = await supabase.from("gotong_royong").select("*").gte("date", new Date().toISOString().split("T")[0]).order("date", { ascending: true }).limit(1);
+  const { data: pengumuman } = await supabase.from("announcements").select("*").order("publish_date", { ascending: false }).limit(4);
+  const { data: kontak } = await supabase.from("emergency_contacts").select("*").eq("is_active", true).order("display_order", { ascending: true }).limit(3);
+
+  const displayName = profile?.name || user.email?.split("@")[0] || "User";
 
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight text-slate-900">Dashboard Warga</h1>
-        <p className="text-sm text-slate-500 mt-1">Selamat datang kembali! Berikut ringkasan informasi lingkungan Anda.</p>
+        <h1 className="text-2xl font-bold tracking-tight text-slate-900">
+          Dashboard {isAdmin ? "Admin" : "Warga"}
+        </h1>
+        <p className="text-sm text-slate-500 mt-1">
+          Selamat datang kembali, {displayName}! Berikut ringkasan informasi {isAdmin ? "sistem" : "lingkungan Anda"}.
+        </p>
       </div>
 
-      {/* Stats Grid */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 items-stretch">
-        {stats.map((stat) => (
-          <Card key={stat.name} className="h-full border-none shadow-sm">
-            <CardContent className="p-6 flex items-center h-full">
-              <div className="flex items-center gap-4 w-full">
-                <div className={`p-3 rounded-xl ${stat.bg} ${stat.color} shrink-0`}>
-                  <stat.icon size={24} />
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-slate-500">{stat.name}</p>
-                  <p className="text-2xl font-bold text-slate-900">{stat.value}</p>
-                </div>
+      {isAdmin ? (
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 items-stretch">
+          <Card className="h-full border-none shadow-sm">
+            <CardContent className="p-6 flex items-center h-full gap-4">
+              <div className="p-3 rounded-xl bg-blue-100 text-blue-600 shrink-0"><Users size={24} /></div>
+              <div><p className="text-sm font-medium text-slate-500">Total Warga</p><p className="text-2xl font-bold text-slate-900">{wargaCount}</p></div>
+            </CardContent>
+          </Card>
+          <Card className="h-full border-none shadow-sm">
+            <CardContent className="p-6 flex items-center h-full gap-4">
+              <div className="p-3 rounded-xl bg-amber-100 text-amber-600 shrink-0"><Wallet size={24} /></div>
+              <div><p className="text-sm font-medium text-slate-500">Verifikasi Iuran</p><p className="text-2xl font-bold text-slate-900">{verificationCount}</p></div>
+            </CardContent>
+          </Card>
+          <Card className="h-full border-none shadow-sm">
+            <CardContent className="p-6 flex items-center h-full gap-4">
+              <div className="p-3 rounded-xl bg-red-100 text-red-600 shrink-0"><FileWarning size={24} /></div>
+              <div><p className="text-sm font-medium text-slate-500">Laporan Open</p><p className="text-2xl font-bold text-slate-900">{openReportsCount}</p></div>
+            </CardContent>
+          </Card>
+          <Card className="h-full border-none shadow-sm">
+            <CardContent className="p-6 flex items-center h-full gap-4">
+              <div className="p-3 rounded-xl bg-emerald-100 text-emerald-600 shrink-0"><Calendar size={24} /></div>
+              <div><p className="text-sm font-medium text-slate-500">Agenda Aktif</p><p className="text-2xl font-bold text-slate-900">{activeAgendasCount}</p></div>
+            </CardContent>
+          </Card>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 items-stretch">
+          <Card className="h-full border-none shadow-sm">
+            <CardContent className="p-6 flex flex-col justify-center h-full">
+              <p className="text-sm font-medium text-slate-500 mb-1">Status Anda</p>
+              <div className="flex items-center gap-2">
+                <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-100">
+                  {resident?.status || "Aktif"}
+                </Badge>
+                <span className="text-sm font-bold text-slate-800">{resident?.block} / {resident?.house_number}</span>
               </div>
             </CardContent>
           </Card>
-        ))}
-      </div>
+          <Link href="/iuran">
+            <Card className="h-full border-none shadow-sm hover:shadow-md transition-all cursor-pointer">
+              <CardContent className="p-6 flex items-center h-full gap-4">
+                <div className="p-3 rounded-xl bg-emerald-100 text-emerald-600 shrink-0"><Wallet size={24} /></div>
+                <div><p className="text-sm font-medium text-slate-500">Status Iuran</p><p className="text-sm font-bold text-slate-900">Cek Tagihan</p></div>
+              </CardContent>
+            </Card>
+          </Link>
+          <Link href="/laporan">
+            <Card className="h-full border-none shadow-sm hover:shadow-md transition-all cursor-pointer">
+              <CardContent className="p-6 flex items-center h-full gap-4">
+                <div className="p-3 rounded-xl bg-amber-100 text-amber-600 shrink-0"><FileWarning size={24} /></div>
+                <div><p className="text-sm font-medium text-slate-500">Laporan Anda</p><p className="text-sm font-bold text-slate-900">{ownReports.length} Laporan</p></div>
+              </CardContent>
+            </Card>
+          </Link>
+          <Link href="/kontak">
+            <Card className="h-full border-none shadow-sm hover:shadow-md transition-all cursor-pointer">
+              <CardContent className="p-6 flex items-center h-full gap-4">
+                <div className="p-3 rounded-xl bg-red-100 text-red-600 shrink-0"><ShieldAlert size={24} /></div>
+                <div><p className="text-sm font-medium text-slate-500">Darurat</p><p className="text-sm font-bold text-slate-900">Kontak Penting</p></div>
+              </CardContent>
+            </Card>
+          </Link>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
         {/* Main Content Area (2/3) */}
         <div className="lg:col-span-2 space-y-8">
+          
+          {/* Quick Actions for Warga */}
+          {!isAdmin && (
+             <section className="flex gap-4 overflow-x-auto pb-2">
+                <Link href="/laporan" className="flex-1 min-w-[150px]">
+                  <Button className="w-full bg-amber-600 hover:bg-amber-700 h-12">
+                    <Plus className="w-4 h-4 mr-2" /> Buat Laporan
+                  </Button>
+                </Link>
+                <Link href="/iuran" className="flex-1 min-w-[150px]">
+                  <Button className="w-full bg-emerald-600 hover:bg-emerald-700 h-12">
+                    <Wallet className="w-4 h-4 mr-2" /> Bayar Iuran
+                  </Button>
+                </Link>
+             </section>
+          )}
+
           {/* Latest Agenda */}
           <section className="space-y-4">
             <div className="flex items-center justify-between">
@@ -73,14 +182,14 @@ export default function DashboardPage() {
               </Link>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-stretch">
-              {mockAgendas.slice(0, 2).map((agenda) => (
+              {agendas && agendas.length > 0 ? agendas.map((agenda: any) => (
                 <Card key={agenda.id} className="h-full hover:shadow-md transition-all flex flex-col border-none shadow-sm">
                   <CardContent className="p-5 flex-1 flex flex-col">
                     <div className="flex justify-between items-start mb-3">
                       <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-100">
                         {agenda.category}
                       </Badge>
-                      <span className="text-xs text-slate-400 font-medium">{agenda.date}</span>
+                      <span className="text-xs text-slate-400 font-medium">{new Date(agenda.date).toLocaleDateString('id-ID')}</span>
                     </div>
                     <h3 className="font-bold text-slate-900 mb-2">{agenda.title}</h3>
                     <div className="mt-auto space-y-1.5">
@@ -93,7 +202,9 @@ export default function DashboardPage() {
                     </div>
                   </CardContent>
                 </Card>
-              ))}
+              )) : (
+                <div className="col-span-2 p-6 text-center text-slate-500 bg-white rounded-xl border border-slate-100">Belum ada agenda terdekat.</div>
+              )}
             </div>
           </section>
 
@@ -107,40 +218,56 @@ export default function DashboardPage() {
                 Detail Kegiatan <ArrowRight className="w-4 h-4 ml-1" />
               </Link>
             </div>
-            {mockGotongRoyong.length > 0 ? (
-              <Card className="border-l-4 border-l-blue-500">
+            {gotongRoyong && gotongRoyong.length > 0 ? (
+              <Card className="border-l-4 border-l-blue-500 border-y-0 border-r-0 shadow-sm">
                 <CardContent className="p-6">
                   <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-                    <div className="space-y-2">
-                      <h3 className="text-xl font-bold text-slate-900">{mockGotongRoyong[0].title}</h3>
-                      <p className="text-sm text-slate-600 max-w-lg">{mockGotongRoyong[0].description}</p>
+                    <div className="space-y-2 flex-1">
+                      <h3 className="text-xl font-bold text-slate-900">{gotongRoyong[0].title}</h3>
+                      <p className="text-sm text-slate-600 max-w-lg">{gotongRoyong[0].description}</p>
                       <div className="flex flex-wrap gap-4 pt-2">
                         <div className="flex items-center text-sm text-slate-600 gap-1.5">
-                          <Calendar size={16} className="text-slate-400" /> {mockGotongRoyong[0].date}
+                          <Calendar size={16} className="text-slate-400" /> {new Date(gotongRoyong[0].date).toLocaleDateString('id-ID')}
                         </div>
                         <div className="flex items-center text-sm text-slate-600 gap-1.5">
-                          <Clock size={16} className="text-slate-400" /> {mockGotongRoyong[0].time} WIB
+                          <Clock size={16} className="text-slate-400" /> {gotongRoyong[0].time} WIB
                         </div>
                         <div className="flex items-center text-sm text-slate-600 gap-1.5">
-                          <MapPin size={16} className="text-slate-400" /> {mockGotongRoyong[0].location}
+                          <MapPin size={16} className="text-slate-400" /> {gotongRoyong[0].location}
                         </div>
                       </div>
                     </div>
                     <div className="flex flex-col items-center justify-center p-4 bg-slate-50 rounded-xl min-w-[140px]">
-                      <span className="text-2xl font-bold text-slate-900">{mockGotongRoyong[0].required_participants}</span>
+                      <span className="text-2xl font-bold text-slate-900">{gotongRoyong[0].required_participants}</span>
                       <span className="text-xs text-slate-500 text-center font-medium">Target Peserta</span>
                     </div>
                   </div>
                 </CardContent>
               </Card>
             ) : (
-              <Card><CardContent className="p-8 text-center text-slate-500">Belum ada jadwal gotong royong.</CardContent></Card>
+              <Card className="border-none shadow-sm"><CardContent className="p-8 text-center text-slate-500">Belum ada jadwal gotong royong.</CardContent></Card>
             )}
           </section>
         </div>
 
         {/* Sidebar area (1/3) */}
         <div className="space-y-8">
+          
+          {/* Admin Quick Links */}
+          {isAdmin && (
+            <section className="space-y-4">
+              <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+                Manajemen
+              </h2>
+              <div className="grid grid-cols-2 gap-2">
+                <Link href="/admin"><Button variant="outline" className="w-full justify-start text-sm">Dashboard Admin</Button></Link>
+                <Link href="/admin?tab=warga"><Button variant="outline" className="w-full justify-start text-sm">Data Warga</Button></Link>
+                <Link href="/admin?tab=iuran"><Button variant="outline" className="w-full justify-start text-sm">Iuran Warga</Button></Link>
+                <Link href="/admin?tab=laporan"><Button variant="outline" className="w-full justify-start text-sm">Laporan Warga</Button></Link>
+              </div>
+            </section>
+          )}
+
           {/* Announcements */}
           <section className="space-y-4">
             <div className="flex items-center justify-between">
@@ -149,14 +276,14 @@ export default function DashboardPage() {
               </h2>
             </div>
             <div className="space-y-3">
-              {mockPengumuman.slice(0, 3).map((item) => (
+              {pengumuman && pengumuman.map((item: any) => (
                 <div key={item.id} className="p-4 bg-white rounded-xl shadow-sm border border-slate-100 hover:border-emerald-200 transition-colors cursor-pointer group">
                   <div className="flex justify-between items-start mb-1">
                     <h4 className="font-bold text-slate-900 group-hover:text-emerald-600 transition-colors line-clamp-1">{item.title}</h4>
-                    {item.priority === "Penting" && <div className="h-2 w-2 rounded-full bg-red-500 animate-pulse"></div>}
+                    {item.priority === "Penting" && <div className="h-2 w-2 rounded-full bg-red-500 animate-pulse mt-1 shrink-0"></div>}
                   </div>
                   <p className="text-xs text-slate-500 line-clamp-2 leading-relaxed">{item.content}</p>
-                  <span className="text-[10px] text-slate-400 mt-2 block font-medium">{item.publish_date}</span>
+                  <span className="text-[10px] text-slate-400 mt-2 block font-medium">{item.publish_date ? new Date(item.publish_date).toLocaleDateString('id-ID') : ''}</span>
                 </div>
               ))}
               <Link href="/pengumuman" className="block text-center p-2 text-xs font-bold text-slate-400 hover:text-emerald-600 uppercase tracking-wider">
@@ -171,9 +298,9 @@ export default function DashboardPage() {
               <ShieldAlert className="w-5 h-5 text-red-600" /> Kontak Darurat
             </h2>
             <div className="grid grid-cols-1 gap-2">
-              {mockKontakDarurat.slice(0, 2).map((contact) => (
-                <a 
-                  key={contact.id} 
+              {kontak && kontak.map((contact: any) => (
+                <a
+                  key={contact.id}
                   href={`tel:${contact.phone}`}
                   className="flex items-center justify-between p-3 bg-red-50 rounded-lg border border-red-100 hover:bg-red-100 transition-colors"
                 >

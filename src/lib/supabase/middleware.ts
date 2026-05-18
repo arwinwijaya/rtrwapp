@@ -37,7 +37,7 @@ export async function updateSession(request: NextRequest) {
   const path = request.nextUrl.pathname
 
   // Protected routes check
-  if (path.startsWith('/admin') || path.startsWith('/warga')) {
+  if (path.startsWith('/admin') || path.startsWith('/warga') || path.startsWith('/dashboard')) {
     if (!user) {
       // no user, redirect to login
       const url = request.nextUrl.clone()

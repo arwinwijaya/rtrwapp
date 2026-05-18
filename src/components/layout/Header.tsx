@@ -36,22 +36,34 @@ const navigation = [
 export default function Header() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [user, setUser] = useState<any>(null);
+  const [profile, setProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const pathname = usePathname();
   const router = useRouter();
   const supabase = createClient();
 
   useEffect(() => {
+    const fetchUserAndProfile = async (session: any) => {
+      if (session?.user) {
+        setUser(session.user);
+        const { data } = await supabase.from("profiles").select("*").eq("id", session.user.id).single();
+        setProfile(data);
+      } else {
+        setUser(null);
+        setProfile(null);
+      }
+      setLoading(false);
+    };
+
     const getUser = async () => {
       const { data: { session } } = await supabase.auth.getSession();
-      setUser(session?.user ?? null);
-      setLoading(false);
+      await fetchUserAndProfile(session);
     };
 
     getUser();
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      await fetchUserAndProfile(session);
     });
 
     return () => subscription.unsubscribe();
@@ -59,12 +71,15 @@ export default function Header() {
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
+    setUser(null);
+    setProfile(null);
     router.push("/");
     setIsMobileMenuOpen(false);
   };
 
-  // Mock admin check - in real app, check user metadata or a 'profiles' table
-  const isAdmin = user?.email?.includes("admin");
+  const isAdmin = profile?.role === "RT Admin" || profile?.role === "RW Admin";
+  const isWarga = profile?.role === "Warga";
+  const displayName = profile?.name || user?.email?.split('@')[0] || "User";
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-slate-200 bg-white/80 backdrop-blur-md">
@@ -102,29 +117,39 @@ export default function Header() {
           </div>
 
           {/* Right Actions */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-4">
             {!loading && (
-              <div className="hidden sm:flex items-center gap-2">
-                {isAdmin && (
-                  <Link href="/admin">
-                    <Button variant="ghost" size="sm" className="text-slate-600">
-                      <Settings className="w-4 h-4 mr-2" /> Admin
-                    </Button>
-                  </Link>
-                )}
-                
+              <div className="hidden sm:flex items-center gap-3">
                 {user ? (
-                  <div className="flex items-center gap-3 ml-2 border-l border-slate-200 pl-4">
-                    <div className="h-8 w-8 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-700 font-bold text-xs uppercase">
-                      {user.email?.charAt(0) ?? "U"}
+                  <>
+                    {isAdmin && (
+                      <Link href="/admin">
+                        <Button variant="ghost" size="sm" className="text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-100">
+                          <Settings className="w-4 h-4 mr-2" /> Admin
+                        </Button>
+                      </Link>
+                    )}
+                    
+                    <div className="flex items-center gap-3 pl-3 border-l border-slate-200">
+                      <div className="flex flex-col items-end leading-tight max-w-[120px] md:max-w-[200px]">
+                        <span className="text-sm font-bold text-slate-800 truncate w-full text-right">{displayName}</span>
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">{isAdmin ? 'Admin' : 'Warga'}</span>
+                      </div>
+                      <div className="h-9 w-9 rounded-full bg-emerald-600 flex items-center justify-center text-white font-bold text-sm shadow-sm">
+                        {displayName.charAt(0)}
+                      </div>
+                      <button 
+                        onClick={handleLogout}
+                        className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-full transition-colors"
+                        title="Keluar"
+                      >
+                        <LogOut className="w-5 h-5" />
+                      </button>
                     </div>
-                    <Button variant="ghost" size="sm" className="text-slate-600" onClick={handleLogout}>
-                      <LogOut className="w-4 h-4 mr-2" /> Keluar
-                    </Button>
-                  </div>
+                  </>
                 ) : (
                   <Link href="/login">
-                    <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700">
+                    <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700 shadow-md shadow-emerald-100 px-6">
                       <LogIn className="w-4 h-4 mr-2" /> Masuk
                     </Button>
                   </Link>

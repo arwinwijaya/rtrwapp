@@ -10,8 +10,8 @@ export async function getIuran(): Promise<Iuran[]> {
       .select('*, iuran_periods(*, iuran_types(*))')
       .order('created_at', { ascending: false })
 
-    if (error || !data || data.length === 0) {
-      return mockIuran as Iuran[]
+    if (error || !data) {
+      return []
     }
 
     // Mapping Supabase data to the existing frontend type structure for compatibility
@@ -38,6 +38,6 @@ export async function getIuran(): Promise<Iuran[]> {
       } : undefined
     }))
   } catch (error) {
-    return mockIuran as Iuran[]
+    return []
   }
 }

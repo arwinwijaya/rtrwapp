@@ -41,7 +41,7 @@ export async function getIuranTypes() {
     const { data } = await supabase.from('iuran_types').select('*').order('display_order', { ascending: true })
     return data || mockIuranTypes
   } catch (error) {
-    return mockIuranTypes
+    return []
   }
 }
 
@@ -51,6 +51,6 @@ export async function getIuranPeriods() {
     const { data } = await supabase.from('iuran_periods').select('*, iuran_types(*)').order('year', { ascending: false }).order('month', { ascending: false })
     return data || mockIuranPeriods
   } catch (error) {
-    return mockIuranPeriods
+    return []
   }
 }

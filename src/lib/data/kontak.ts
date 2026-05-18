@@ -9,12 +9,12 @@ export async function getKontakDarurat() {
       .select('*')
       .order('display_order', { ascending: true })
 
-    if (error || !data || data.length === 0) {
-      return mockKontakDarurat
+    if (error || !data) {
+      return []
     }
 
     return data
   } catch (error) {
-    return mockKontakDarurat
+    return []
   }
 }

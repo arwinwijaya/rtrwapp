@@ -10,12 +10,12 @@ export async function getPengumuman(): Promise<Pengumuman[]> {
       .select('*')
       .order('publish_date', { ascending: false })
 
-    if (error || !data || data.length === 0) {
-      return mockPengumuman as Pengumuman[]
+    if (error || !data) {
+      return []
     }
 
     return data as Pengumuman[]
   } catch (error) {
-    return mockPengumuman as Pengumuman[]
+    return []
   }
 }

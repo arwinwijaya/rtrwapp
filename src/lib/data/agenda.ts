@@ -10,12 +10,12 @@ export async function getAgendas(): Promise<Agenda[]> {
       .select('*')
       .order('date', { ascending: true })
 
-    if (error || !data || data.length === 0) {
-      return mockAgendas as Agenda[]
+    if (error || !data) {
+      return []
     }
 
     return data as Agenda[]
   } catch (error) {
-    return mockAgendas as Agenda[]
+    return []
   }
 }

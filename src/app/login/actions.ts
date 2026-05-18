@@ -12,7 +12,7 @@ export async function login(formData: FormData) {
     // Just mock redirect to admin for demo purposes if no supabase
     const email = formData.get('email') as string
     if (email.includes('admin')) redirect('/admin')
-    else redirect('/warga')
+    else redirect('/dashboard')
   }
 
   const data = {
@@ -35,10 +35,10 @@ export async function login(formData: FormData) {
 
   revalidatePath('/', 'layout')
 
-  if (profile?.role === 'admin') {
+  if (profile?.role === 'RT Admin' || profile?.role === 'RW Admin') {
     redirect('/admin')
   } else {
-    redirect('/warga')
+    redirect('/dashboard')
   }
 }
 

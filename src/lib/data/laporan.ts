@@ -9,12 +9,12 @@ export async function getLaporan() {
       .select('*')
       .order('created_at', { ascending: false })
 
-    if (error || !data || data.length === 0) {
-      return mockLaporan
+    if (error || !data) {
+      return []
     }
 
     return data
   } catch (error) {
-    return mockLaporan
+    return []
   }
 }

@@ -9,12 +9,12 @@ export async function getWarga() {
       .select('*')
       .order('name', { ascending: true })
 
-    if (error || !data || data.length === 0) {
-      return mockWarga
+    if (error || !data) {
+      return []
     }
 
     return data
   } catch (error) {
-    return mockWarga
+    return []
   }
 }
