@@ -1,4 +1,15 @@
-import { Agenda, GotongRoyong, Iuran, Pengumuman, Warga, Laporan, HousingProfile, EmergencyContact } from "@/types";
+import { 
+  Agenda, 
+  GotongRoyong, 
+  Iuran, 
+  Pengumuman, 
+  Warga, 
+  Laporan, 
+  HousingProfile, 
+  EmergencyContact,
+  IuranPeriod,
+  IuranType
+} from "@/types";
 
 export const mockHousingProfile: HousingProfile = {
   id: "hp1",
@@ -18,7 +29,7 @@ export const mockAgendas: Agenda[] = [
     time: "19:30",
     location: "Balai Warga RT 01",
     description: "Rapat rutin membahas laporan keuangan dan keamanan lingkungan.",
-    created_by: "Admin RT",
+    visibility: "Warga Only",
   },
   {
     id: "a2",
@@ -28,7 +39,7 @@ export const mockAgendas: Agenda[] = [
     time: "08:00",
     location: "Posyandu Melati",
     description: "Penimbangan balita dan pemberian vitamin.",
-    created_by: "Kader Posyandu",
+    visibility: "Public",
   }
 ];
 
@@ -41,45 +52,66 @@ export const mockGotongRoyong: GotongRoyong[] = [
     location: "Sepanjang Jalan Utama Blok A & B",
     description: "Membersihkan saluran air mengantisipasi musim hujan.",
     required_participants: 20,
+    status: "Scheduled",
   }
+];
+
+export const mockIuranTypes: IuranType[] = [
+  { id: "t1", name: "Iuran Keamanan", default_amount: 100000 },
+  { id: "t2", name: "Iuran Kebersihan", default_amount: 50000 },
+  { id: "t3", name: "Iuran Air", default_amount: 150000 },
+];
+
+export const mockIuranPeriods: IuranPeriod[] = [
+  { id: "p1", iuran_type_id: "t1", month: "November", year: 2023, amount: 100000, iuran_type: mockIuranTypes[0] },
+  { id: "p2", iuran_type_id: "t2", month: "November", year: 2023, amount: 50000, iuran_type: mockIuranTypes[1] },
 ];
 
 export const mockIuran: Iuran[] = [
   {
     id: "i1",
+    period_id: "p1",
     resident_id: "w1",
     resident_name: "Budi Santoso",
-    house_number: "12",
-    block: "A1",
-    month: "November",
-    year: 2023,
-    amount: 150000,
+    amount: 100000,
     status: "Lunas",
-    verified_by: "Admin Keuangan",
+    payment_method: "Transfer",
+    paid_at: "2023-11-05T09:00:00Z",
     verified_at: "2023-11-05T10:00:00Z",
+    iuran_period: mockIuranPeriods[0],
   },
   {
     id: "i2",
+    period_id: "p1",
     resident_id: "w2",
     resident_name: "Siti Aminah",
-    house_number: "15",
-    block: "B2",
-    month: "November",
-    year: 2023,
-    amount: 150000,
+    amount: 100000,
     status: "Menunggu Verifikasi",
+    payment_method: "Transfer",
     payment_proof_url: "https://example.com/proof.jpg",
+    paid_at: "2023-11-10T14:00:00Z",
+    iuran_period: mockIuranPeriods[0],
   },
   {
     id: "i3",
+    period_id: "p1",
     resident_id: "w3",
     resident_name: "Agus Pratama",
-    house_number: "08",
-    block: "C1",
-    month: "November",
-    year: 2023,
-    amount: 150000,
+    amount: 100000,
     status: "Belum Bayar",
+    iuran_period: mockIuranPeriods[0],
+  },
+  {
+    id: "i4",
+    period_id: "p2",
+    resident_id: "w1",
+    resident_name: "Budi Santoso",
+    amount: 50000,
+    status: "Lunas",
+    payment_method: "Tunai",
+    paid_at: "2023-11-05T09:05:00Z",
+    verified_at: "2023-11-05T10:00:00Z",
+    iuran_period: mockIuranPeriods[1],
   }
 ];
 
@@ -90,6 +122,7 @@ export const mockPengumuman: Pengumuman[] = [
     content: "Diberitahukan bahwa akan ada pemadaman listrik pada hari Minggu, 26 Nov dari jam 09.00 - 12.00 karena perbaikan gardu.",
     category: "Informasi",
     priority: "Penting",
+    visibility: "Public",
     publish_date: "2023-11-18",
   },
   {
@@ -98,7 +131,17 @@ export const mockPengumuman: Pengumuman[] = [
     content: "Dimohon warga untuk selalu mengunci pagar rumah setelah jam 22:00 WIB.",
     category: "Keamanan",
     priority: "Normal",
+    visibility: "Public",
     publish_date: "2023-11-15",
+  },
+  {
+    id: "p3",
+    title: "Laporan Keuangan RT Oktober",
+    content: "Laporan keuangan RT untuk bulan Oktober sudah tersedia untuk dilihat di Balai Warga.",
+    category: "Keuangan",
+    priority: "Normal",
+    visibility: "Warga Only",
+    publish_date: "2023-11-01",
   }
 ];
 
@@ -163,22 +206,28 @@ export const mockKontakDarurat: EmergencyContact[] = [
   {
     id: "c1",
     name: "Ambulans",
+    role: "Emergency Medis",
     phone: "118",
     category: "Medis",
+    is_active: true,
     display_order: 1,
   },
   {
     id: "c2",
     name: "Polisi",
+    role: "Polda/Polres",
     phone: "110",
     category: "Keamanan",
+    is_active: true,
     display_order: 2,
   },
   {
     id: "c3",
     name: "Pemadam Kebakaran",
+    role: "Damkar",
     phone: "113",
     category: "Keamanan",
+    is_active: true,
     display_order: 3,
   }
 ];

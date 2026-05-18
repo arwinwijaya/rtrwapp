@@ -1,7 +1,8 @@
 import { createClient } from '@/lib/supabase/server'
 import { mockPengumuman } from '@/lib/mock-data'
+import { Pengumuman } from '@/types'
 
-export async function getPengumuman() {
+export async function getPengumuman(): Promise<Pengumuman[]> {
   try {
     const supabase = await createClient()
     const { data, error } = await supabase
@@ -10,11 +11,11 @@ export async function getPengumuman() {
       .order('publish_date', { ascending: false })
 
     if (error || !data || data.length === 0) {
-      return mockPengumuman
+      return mockPengumuman as Pengumuman[]
     }
 
-    return data
+    return data as Pengumuman[]
   } catch (error) {
-    return mockPengumuman
+    return mockPengumuman as Pengumuman[]
   }
 }

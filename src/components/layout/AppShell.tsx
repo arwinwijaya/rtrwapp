@@ -1,46 +1,20 @@
 "use client";
 
-import React, { useState } from "react";
-import Sidebar from "./Sidebar";
+import React from "react";
 import Header from "./Header";
-import { Menu } from "lucide-react";
-import { usePathname } from "next/navigation";
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const pathname = usePathname();
-
-  if (pathname === '/' || pathname === '/login') {
-    return <>{children}</>;
-  }
-
   return (
-    <div className="flex h-screen bg-slate-50">
-      {/* Sidebar for Desktop */}
-      <div className="hidden md:flex md:w-64 md:flex-col md:fixed md:inset-y-0 z-20 bg-white border-r border-slate-200">
-        <Sidebar onClose={() => setIsMobileMenuOpen(false)} />
-      </div>
-
-      {/* Mobile Sidebar overlay */}
-      {isMobileMenuOpen && (
-        <div className="fixed inset-0 z-30 flex md:hidden">
-          <div
-            className="fixed inset-0 bg-slate-900/80"
-            onClick={() => setIsMobileMenuOpen(false)}
-          ></div>
-          <div className="relative flex w-full max-w-xs flex-1 flex-col bg-white">
-            <Sidebar onClose={() => setIsMobileMenuOpen(false)} />
-          </div>
+    <div className="min-h-screen bg-slate-50 flex flex-col">
+      <Header />
+      <main className="flex-1 w-full mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
+        {children}
+      </main>
+      <footer className="bg-white border-t border-slate-200 py-8 px-4 text-center text-slate-500 text-sm">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <p>© {new Date().getFullYear()} RT RW App. Platform Manajemen Perumahan Mandiri.</p>
         </div>
-      )}
-
-      {/* Main Content */}
-      <div className="flex flex-1 flex-col md:pl-64 h-screen overflow-hidden">
-        <Header onMenuClick={() => setIsMobileMenuOpen(true)} />
-        <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
-          {children}
-        </main>
-      </div>
+      </footer>
     </div>
   );
 }

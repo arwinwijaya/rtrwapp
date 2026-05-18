@@ -1,7 +1,8 @@
 import { createClient } from '@/lib/supabase/server'
 import { mockGotongRoyong } from '@/lib/mock-data'
+import { GotongRoyong } from '@/types'
 
-export async function getGotongRoyong() {
+export async function getGotongRoyong(): Promise<GotongRoyong[]> {
   try {
     const supabase = await createClient()
     const { data, error } = await supabase
@@ -10,11 +11,11 @@ export async function getGotongRoyong() {
       .order('date', { ascending: true })
 
     if (error || !data || data.length === 0) {
-      return mockGotongRoyong
+      return mockGotongRoyong as GotongRoyong[]
     }
 
-    return data
+    return data as GotongRoyong[]
   } catch (error) {
-    return mockGotongRoyong
+    return mockGotongRoyong as GotongRoyong[]
   }
 }

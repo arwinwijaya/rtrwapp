@@ -1,7 +1,8 @@
 import { createClient } from '@/lib/supabase/server'
 import { mockAgendas } from '@/lib/mock-data'
+import { Agenda } from '@/types'
 
-export async function getAgendas() {
+export async function getAgendas(): Promise<Agenda[]> {
   try {
     const supabase = await createClient()
     const { data, error } = await supabase
@@ -10,13 +11,11 @@ export async function getAgendas() {
       .order('date', { ascending: true })
 
     if (error || !data || data.length === 0) {
-      console.warn("Supabase fetch failed or empty, falling back to mock agendas", error)
-      return mockAgendas
+      return mockAgendas as Agenda[]
     }
 
-    return data
+    return data as Agenda[]
   } catch (error) {
-    console.warn("Supabase not configured, falling back to mock agendas")
-    return mockAgendas
+    return mockAgendas as Agenda[]
   }
 }
