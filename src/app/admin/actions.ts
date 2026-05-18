@@ -442,6 +442,206 @@ export async function createEmergencyContact(formData: FormData) {
 }
 
 /**
+ * Update Resident
+ */
+export async function updateResident(id: string, formData: FormData) {
+  if (!(await checkAdmin())) return { error: 'Unauthorized' }
+
+  const name = formData.get('name') as string
+  const house_number = formData.get('house_number') as string
+  const block = formData.get('block') as string
+  const phone = formData.get('phone') as string
+  const email = formData.get('email') as string
+  const family_members_count = parseInt(formData.get('family_members_count') as string || '1')
+  const status = formData.get('status') as ResidentStatus
+
+  try {
+    const supabase = await createClient()
+    const { error } = await supabase.from('residents').update({
+      name,
+      house_number,
+      block,
+      phone,
+      email,
+      family_members_count,
+      status
+    }).eq('id', id)
+
+    if (error) throw error
+    revalidatePath('/admin')
+    revalidatePath('/warga')
+    return { success: true }
+  } catch (error: any) {
+    return { error: error.message }
+  }
+}
+
+/**
+ * Create Iuran Type
+ */
+export async function createIuranType(formData: FormData) {
+  if (!(await checkAdmin())) return { error: 'Unauthorized' }
+
+  const name = formData.get('name') as string
+  const description = formData.get('description') as string
+  const default_amount = parseFloat(formData.get('default_amount') as string || '0')
+  const display_order = parseInt(formData.get('display_order') as string || '0')
+  const is_active = formData.get('is_active') === 'on'
+
+  try {
+    const supabase = await createClient()
+    const { data: userAuth } = await supabase.auth.getUser()
+    const { data: adminProfile } = await supabase.from('profiles').select('housing_id').eq('id', userAuth.user?.id || '').single()
+
+    const { error } = await supabase.from('iuran_types').insert({
+      housing_id: adminProfile?.housing_id,
+      name,
+      description,
+      default_amount,
+      display_order,
+      is_active
+    })
+
+    if (error) throw error
+    revalidatePath('/admin')
+    return { success: true }
+  } catch (error: any) {
+    return { error: error.message }
+  }
+}
+
+/**
+ * Update Iuran Type
+ */
+export async function updateIuranType(id: string, formData: FormData) {
+  if (!(await checkAdmin())) return { error: 'Unauthorized' }
+
+  const name = formData.get('name') as string
+  const description = formData.get('description') as string
+  const default_amount = parseFloat(formData.get('default_amount') as string || '0')
+  const display_order = parseInt(formData.get('display_order') as string || '0')
+  const is_active = formData.get('is_active') === 'on'
+
+  try {
+    const supabase = await createClient()
+    const { error } = await supabase.from('iuran_types').update({
+      name,
+      description,
+      default_amount,
+      display_order,
+      is_active
+    }).eq('id', id)
+
+    if (error) throw error
+    revalidatePath('/admin')
+    return { success: true }
+  } catch (error: any) {
+    return { error: error.message }
+  }
+}
+
+/**
+ * Update Iuran Period
+ */
+export async function updateIuranPeriod(id: string, formData: FormData) {
+  if (!(await checkAdmin())) return { error: 'Unauthorized' }
+
+  const title = formData.get('title') as string
+  const month = formData.get('month') as string
+  const year = parseInt(formData.get('year') as string)
+  const amount = parseFloat(formData.get('amount') as string)
+  const due_date = formData.get('due_date') as string
+  const status = formData.get('status') as string
+
+  try {
+    const supabase = await createClient()
+    const { error } = await supabase.from('iuran_periods').update({
+      title,
+      month,
+      year,
+      amount,
+      due_date,
+      status
+    }).eq('id', id)
+
+    if (error) throw error
+    revalidatePath('/admin')
+    revalidatePath('/iuran')
+    return { success: true }
+  } catch (error: any) {
+    return { error: error.message }
+  }
+}
+
+/**
+ * Update Announcement
+ */
+export async function updateAnnouncement(id: string, formData: FormData) {
+  if (!(await checkAdmin())) return { error: 'Unauthorized' }
+
+  const title = formData.get('title') as string
+  const content = formData.get('content') as string
+  const category = formData.get('category') as string
+  const priority = formData.get('priority') as any
+  const visibility = formData.get('visibility') as any
+  const publish_date = formData.get('publish_date') as string
+
+  try {
+    const supabase = await createClient()
+    const { error } = await supabase.from('announcements').update({
+      title,
+      content,
+      category,
+      priority,
+      visibility,
+      publish_date
+    }).eq('id', id)
+
+    if (error) throw error
+    revalidatePath('/admin')
+    revalidatePath('/pengumuman')
+    return { success: true }
+  } catch (error: any) {
+    return { error: error.message }
+  }
+}
+
+/**
+ * Update Emergency Contact
+ */
+export async function updateEmergencyContact(id: string, formData: FormData) {
+  if (!(await checkAdmin())) return { error: 'Unauthorized' }
+
+  const name = formData.get('name') as string
+  const role = formData.get('role') as string
+  const phone = formData.get('phone') as string
+  const category = formData.get('category') as string
+  const description = formData.get('description') as string
+  const display_order = parseInt(formData.get('display_order') as string || '0')
+  const is_active = formData.get('is_active') === 'on'
+
+  try {
+    const supabase = await createClient()
+    const { error } = await supabase.from('emergency_contacts').update({
+      name,
+      role,
+      phone,
+      category,
+      description,
+      display_order,
+      is_active
+    }).eq('id', id)
+
+    if (error) throw error
+    revalidatePath('/admin')
+    revalidatePath('/kontak')
+    return { success: true }
+  } catch (error: any) {
+    return { error: error.message }
+  }
+}
+
+/**
  * Create Announcement
  */
 export async function createAnnouncement(formData: FormData) {
