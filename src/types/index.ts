@@ -8,6 +8,7 @@ export type AnnouncementPriority = "Normal" | "Penting" | "Mendesak";
 export type VisibilityType = "Public" | "Warga Only";
 export type GotongRoyongStatus = "Scheduled" | "In Progress" | "Completed" | "Cancelled";
 export type AttendanceStatus = "Hadir" | "Izin" | "Alpa" | "Akan Hadir" | "Tidak Hadir" | "Belum Konfirmasi";
+export type ActivityType = "Gotong Royong" | "Kerja Bakti" | "Ronda";
 
 export interface Agenda {
   id: string;
@@ -24,6 +25,7 @@ export interface Agenda {
 export interface GotongRoyong {
   id: string;
   title: string;
+  activity_type: ActivityType;
   date: string;
   time: string;
   location: string;

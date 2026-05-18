@@ -1,14 +1,19 @@
 import { createClient } from '@/lib/supabase/server'
-import { mockGotongRoyong } from '@/lib/mock-data'
-import { GotongRoyong } from '@/types'
+import { GotongRoyong, ActivityType } from '@/types'
 
-export async function getGotongRoyong(): Promise<GotongRoyong[]> {
+export async function getGotongRoyong(type?: ActivityType): Promise<GotongRoyong[]> {
   try {
     const supabase = await createClient()
-    const { data, error } = await supabase
+    let query = supabase
       .from('gotong_royong')
       .select('*')
       .order('date', { ascending: true })
+
+    if (type) {
+      query = query.eq('activity_type', type)
+    }
+
+    const { data, error } = await query
 
     if (error || !data) {
       return []

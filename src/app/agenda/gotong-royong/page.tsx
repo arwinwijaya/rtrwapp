@@ -1,5 +1,5 @@
 import React from "react";
-import GotongRoyongClient from "./GotongRoyongClient";
+import GotongRoyongClient from "../../gotong-royong/GotongRoyongClient";
 import { getGotongRoyong } from "@/lib/data/gotongRoyong";
 
 export default async function GotongRoyongPage() {
@@ -8,7 +8,7 @@ export default async function GotongRoyongPage() {
     <GotongRoyongClient 
       gotongRoyong={data} 
       title="Gotong Royong" 
-      subtitle="Jadwal kerja bakti dan gotong royong warga lingkungan." 
+      subtitle="Jadwal gotong royong warga lingkungan." 
     />
   );
 }

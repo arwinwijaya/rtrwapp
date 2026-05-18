@@ -46,42 +46,46 @@ export default async function HomePage() {
       <section className="py-12 px-6 max-w-7xl mx-auto -mt-12">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <Link href="/agenda">
-            <Card className="hover:shadow-lg transition-all cursor-pointer border-none shadow-sm bg-white group">
-              <CardContent className="p-6 flex flex-col items-center text-center gap-3">
+            <Card className="hover:shadow-lg transition-all cursor-pointer border-none shadow-sm bg-white group h-full">
+              <CardContent className="p-6 flex flex-col items-center text-center gap-3 h-full">
                 <div className="p-4 bg-emerald-50 text-emerald-600 rounded-2xl group-hover:bg-emerald-600 group-hover:text-white transition-colors">
                   <Calendar className="w-6 h-6" />
                 </div>
-                <h3 className="font-bold text-slate-800">Agenda Kegiatan</h3>
+                <h3 className="font-bold text-slate-800">Agenda Warga</h3>
+                <p className="text-xs text-slate-500 line-clamp-2">Rapat, sosial, dan kegiatan rutin warga.</p>
               </CardContent>
             </Card>
           </Link>
           <Link href="/pengumuman">
-            <Card className="hover:shadow-lg transition-all cursor-pointer border-none shadow-sm bg-white group">
-              <CardContent className="p-6 flex flex-col items-center text-center gap-3">
+            <Card className="hover:shadow-lg transition-all cursor-pointer border-none shadow-sm bg-white group h-full">
+              <CardContent className="p-6 flex flex-col items-center text-center gap-3 h-full">
                 <div className="p-4 bg-blue-50 text-blue-600 rounded-2xl group-hover:bg-blue-600 group-hover:text-white transition-colors">
                   <Bell className="w-6 h-6" />
                 </div>
                 <h3 className="font-bold text-slate-800">Pengumuman</h3>
+                <p className="text-xs text-slate-500 line-clamp-2">Informasi terbaru dari pengurus RT/RW.</p>
               </CardContent>
             </Card>
           </Link>
-          <Link href="/gotong-royong">
-            <Card className="hover:shadow-lg transition-all cursor-pointer border-none shadow-sm bg-white group">
-              <CardContent className="p-6 flex flex-col items-center text-center gap-3">
+          <Link href="/agenda/gotong-royong">
+            <Card className="hover:shadow-lg transition-all cursor-pointer border-none shadow-sm bg-white group h-full">
+              <CardContent className="p-6 flex flex-col items-center text-center gap-3 h-full">
                 <div className="p-4 bg-amber-50 text-amber-600 rounded-2xl group-hover:bg-amber-600 group-hover:text-white transition-colors">
                   <Users className="w-6 h-6" />
                 </div>
-                <h3 className="font-bold text-slate-800">Gotong Royong</h3>
+                <h3 className="font-bold text-slate-800">Kerja Bakti</h3>
+                <p className="text-xs text-slate-500 line-clamp-2">Gotong royong dan kebersihan lingkungan.</p>
               </CardContent>
             </Card>
           </Link>
-          <Link href="/kontak">
-            <Card className="hover:shadow-lg transition-all cursor-pointer border-none shadow-sm bg-white group">
-              <CardContent className="p-6 flex flex-col items-center text-center gap-3">
+          <Link href="/agenda/ronda">
+            <Card className="hover:shadow-lg transition-all cursor-pointer border-none shadow-sm bg-white group h-full">
+              <CardContent className="p-6 flex flex-col items-center text-center gap-3 h-full">
                 <div className="p-4 bg-red-50 text-red-600 rounded-2xl group-hover:bg-red-600 group-hover:text-white transition-colors">
                   <ShieldAlert className="w-6 h-6" />
                 </div>
-                <h3 className="font-bold text-slate-800">Kontak Darurat</h3>
+                <h3 className="font-bold text-slate-800">Keamanan</h3>
+                <p className="text-xs text-slate-500 line-clamp-2">Jadwal ronda dan kontak darurat.</p>
               </CardContent>
             </Card>
           </Link>

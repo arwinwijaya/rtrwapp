@@ -441,17 +441,19 @@ export async function createAnnouncement(formData: FormData) {
 }
 
 /**
- * Create Gotong Royong
+ * Create Activity (Gotong Royong / Kerja Bakti / Ronda)
  */
-export async function createGotongRoyong(formData: FormData) {
+export async function createActivity(formData: FormData) {
   if (!(await checkAdmin())) return { error: 'Unauthorized' }
 
   const title = formData.get('title') as string
+  const activity_type = formData.get('activity_type') as any || 'Gotong Royong'
   const date = formData.get('date') as string
   const time = formData.get('time') as string
   const location = formData.get('location') as string
   const description = formData.get('description') as string
   const required_participants = parseInt(formData.get('required_participants') as string || '0')
+  const status = formData.get('status') as any || 'Scheduled'
 
   try {
     const supabase = await createClient()
@@ -461,16 +463,21 @@ export async function createGotongRoyong(formData: FormData) {
     const { error } = await supabase.from('gotong_royong').insert({
       housing_id: profile?.housing_id,
       title,
+      activity_type,
       date,
       time,
       location,
       description,
       required_participants,
-      status: 'Scheduled'
+      status
     })
 
     if (error) throw error
     revalidatePath('/admin')
+    revalidatePath('/agenda')
+    revalidatePath('/agenda/gotong-royong')
+    revalidatePath('/agenda/kerja-bakti')
+    revalidatePath('/agenda/ronda')
     revalidatePath('/gotong-royong')
     return { success: true }
   } catch (error: any) {

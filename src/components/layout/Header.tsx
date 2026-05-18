@@ -17,7 +17,10 @@ import {
   Settings,
   LogIn,
   LogOut,
-  User
+  User,
+  ChevronDown,
+  Hammer,
+  ShieldAlert
 } from "lucide-react";
 import { clsx } from "clsx";
 import { Button } from "@/components/ui/Button";
@@ -25,8 +28,17 @@ import { createClient } from "@/lib/supabase/client";
 
 const navigation = [
   { name: "Dashboard", href: "/dashboard", icon: Home },
-  { name: "Agenda", href: "/agenda", icon: CalendarDays },
-  { name: "Gotong Royong", href: "/gotong-royong", icon: Users },
+  { 
+    name: "Agenda", 
+    href: "/agenda", 
+    icon: CalendarDays,
+    submenu: [
+      { name: "Agenda & Kegiatan", href: "/agenda", icon: CalendarDays },
+      { name: "Gotong Royong", href: "/agenda/gotong-royong", icon: Users },
+      { name: "Kerja Bakti", href: "/agenda/kerja-bakti", icon: Hammer },
+      { name: "Ronda", href: "/agenda/ronda", icon: ShieldAlert },
+    ]
+  },
   { name: "Iuran Warga", href: "/iuran", icon: Wallet },
   { name: "Pengumuman", href: "/pengumuman", icon: Megaphone },
   { name: "Laporan", href: "/laporan", icon: FileWarning },
@@ -35,6 +47,7 @@ const navigation = [
 
 export default function Header() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isAgendaOpen, setIsAgendaOpen] = useState(false);
   const [user, setUser] = useState<any>(null);
   const [profile, setProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -98,6 +111,57 @@ export default function Header() {
             <nav className="hidden lg:flex items-center gap-1">
               {navigation.map((item) => {
                 const isActive = pathname === item.href || (item.href !== "/" && pathname.startsWith(item.href));
+                
+                if (item.submenu) {
+                  return (
+                    <div 
+                      key={item.name} 
+                      className="relative group"
+                      onMouseEnter={() => setIsAgendaOpen(true)}
+                      onMouseLeave={() => setIsAgendaOpen(false)}
+                    >
+                      <button
+                        className={clsx(
+                          "flex items-center gap-1 px-3 py-2 text-sm font-medium rounded-md transition-colors outline-none",
+                          isActive
+                            ? "text-emerald-600 bg-emerald-50"
+                            : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
+                        )}
+                      >
+                        {item.name}
+                        <ChevronDown className={clsx("w-4 h-4 transition-transform", isAgendaOpen && "rotate-180")} />
+                      </button>
+
+                      {/* Dropdown Menu */}
+                      <div className={clsx(
+                        "absolute left-0 top-full pt-2 w-56 transition-all duration-200",
+                        isAgendaOpen ? "opacity-100 visible translate-y-0" : "opacity-0 invisible -translate-y-2"
+                      )}>
+                        <div className="bg-white border border-slate-200 rounded-xl shadow-xl overflow-hidden p-1">
+                          {item.submenu.map((sub) => {
+                            const isSubActive = pathname === sub.href;
+                            return (
+                              <Link
+                                key={sub.name}
+                                href={sub.href}
+                                className={clsx(
+                                  "flex items-center gap-3 px-3 py-2.5 text-sm font-medium rounded-lg transition-colors",
+                                  isSubActive
+                                    ? "text-emerald-600 bg-emerald-50"
+                                    : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
+                                )}
+                              >
+                                <sub.icon className={clsx("w-4 h-4", isSubActive ? "text-emerald-600" : "text-slate-400")} />
+                                {sub.name}
+                              </Link>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                }
+
                 return (
                   <Link
                     key={item.name}
@@ -176,9 +240,48 @@ export default function Header() {
 
       {/* Mobile Navigation */}
       {isMobileMenuOpen && (
-        <div className="lg:hidden bg-white border-b border-slate-200 px-4 pt-2 pb-6 space-y-1">
+        <div className="lg:hidden bg-white border-b border-slate-200 px-4 pt-2 pb-6 space-y-1 max-h-[calc(100vh-64px)] overflow-y-auto">
           {navigation.map((item) => {
             const isActive = pathname === item.href || (item.href !== "/" && pathname.startsWith(item.href));
+            
+            if (item.submenu) {
+              return (
+                <div key={item.name} className="space-y-1">
+                  <div
+                    className={clsx(
+                      "flex items-center justify-between px-3 py-3 text-base font-medium rounded-md",
+                      isActive ? "text-emerald-600 bg-emerald-50" : "text-slate-600"
+                    )}
+                  >
+                    <div className="flex items-center gap-3">
+                      <item.icon className={clsx("w-5 h-5", isActive ? "text-emerald-600" : "text-slate-400")} />
+                      {item.name}
+                    </div>
+                  </div>
+                  <div className="pl-11 space-y-1">
+                    {item.submenu.map((sub) => {
+                      const isSubActive = pathname === sub.href;
+                      return (
+                        <Link
+                          key={sub.name}
+                          href={sub.href}
+                          onClick={() => setIsMobileMenuOpen(false)}
+                          className={clsx(
+                            "flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-md",
+                            isSubActive
+                              ? "text-emerald-600 bg-emerald-50/50"
+                              : "text-slate-500 hover:text-slate-900"
+                          )}
+                        >
+                          {sub.name}
+                        </Link>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            }
+
             return (
               <Link
                 key={item.name}

@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
+import { clsx } from "clsx";
 import { 
   Users, 
   Calendar, 
@@ -25,7 +26,9 @@ import {
   Ban,
   AlertCircle,
   Check,
-  X
+  X,
+  Hammer,
+  ShieldAlert
 } from "lucide-react";
 import { 
   createResident, 
@@ -34,7 +37,7 @@ import {
   createAgenda, 
   createAnnouncement, 
   createEmergencyContact,
-  createGotongRoyong,
+  createActivity,
   updateReportStatus,
   updateHousingProfile,
   verifyPayment,
@@ -145,13 +148,19 @@ export default function AdminClient({
     { id: "overview", label: "Dashboard", icon: LayoutDashboard },
     { id: "warga", label: "Data Warga", icon: Users },
     { id: "iuran", label: "Iuran", icon: Wallet },
-    { id: "agenda", label: "Agenda", icon: Calendar },
-    { id: "gotong-royong", label: "Gotong Royong", icon: Users },
+    { id: "agenda", label: "Agenda & Kegiatan", icon: Calendar },
+    { id: "gotong-royong", label: "Kegiatan Warga", icon: Users },
     { id: "pengumuman", label: "Pengumuman", icon: Megaphone },
+
     { id: "laporan", label: "Laporan", icon: FileWarning },
     { id: "kontak", label: "Kontak Darurat", icon: Phone },
     { id: "profil", label: "Profil RT/RW", icon: Building2 },
   ];
+
+  // Kegiatan Sub-tabs
+  const [activeKegiatanSubTab, setActiveKegiatanSubTab] = useState<string>("Gotong Royong");
+
+  const filteredGotongRoyong = gotongRoyong.filter(item => item.activity_type === activeKegiatanSubTab || (!item.activity_type && activeKegiatanSubTab === "Gotong Royong"));
 
   const handleAction = async (action: (fd: FormData) => Promise<any>, e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -780,52 +789,89 @@ export default function AdminClient({
            </div>
         )}
 
-        {/* 5. GOTONG ROYONG TAB */}
+        {/* 5. KEGIATAN TAB (Gotong Royong, Kerja Bakti, Ronda) */}
         {activeTab === "gotong-royong" && (
            <div className="space-y-8 animate-in fade-in duration-500">
-             <div>
-                <h1 className="text-2xl font-bold text-slate-900">Gotong Royong</h1>
-                <p className="text-sm text-slate-500">Jadwal kerja bakti warga.</p>
+             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div>
+                  <h1 className="text-2xl font-bold text-slate-900">Kegiatan Warga</h1>
+                  <p className="text-sm text-slate-500">Kelola jadwal gotong royong, kerja bakti, dan ronda.</p>
+                </div>
+                <div className="flex bg-slate-100 p-1 rounded-xl w-fit">
+                   {["Gotong Royong", "Kerja Bakti", "Ronda"].map(sub => (
+                     <button
+                       key={sub}
+                       onClick={() => setActiveKegiatanSubTab(sub)}
+                       className={clsx(
+                         "px-4 py-2 text-xs font-bold rounded-lg transition-all",
+                         activeKegiatanSubTab === sub ? "bg-white text-emerald-600 shadow-sm" : "text-slate-500 hover:text-slate-700"
+                       )}
+                     >
+                       {sub}
+                     </button>
+                   ))}
+                </div>
               </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
                <div className="lg:col-span-2 space-y-4">
-                  {gotongRoyong.map(item => (
+                  {filteredGotongRoyong.length > 0 ? filteredGotongRoyong.map(item => (
                     <Card key={item.id} className="border-none shadow-sm">
                       <CardContent className="p-6 flex items-center justify-between gap-6">
-                        <div className="space-y-1">
-                           <h3 className="font-bold text-slate-900 text-sm">{item.title}</h3>
-                           <p className="text-[10px] text-slate-400 font-bold uppercase">{item.date} | {item.time}</p>
+                        <div className="flex items-center gap-4">
+                           <div className="h-10 w-10 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center shrink-0">
+                              {item.activity_type === "Kerja Bakti" ? <Hammer size={20} /> : item.activity_type === "Ronda" ? <ShieldAlert size={20} /> : <Users size={20} />}
+                           </div>
+                           <div>
+                              <h3 className="font-bold text-slate-900 text-sm">{item.title}</h3>
+                              <p className="text-[10px] text-slate-400 font-bold uppercase">{item.date} | {item.time}</p>
+                           </div>
                         </div>
-                        <button onClick={() => handleDelete('gotong_royong', item.id)} className="p-2 text-slate-400 hover:text-red-600"><Trash2 size={16} /></button>
+                        <div className="flex items-center gap-4">
+                           <Badge variant={item.status === 'Completed' ? 'success' : item.status === 'Cancelled' ? 'danger' : 'warning'}>{item.status}</Badge>
+                           <button onClick={() => handleDelete('gotong_royong', item.id)} className="p-2 text-slate-400 hover:text-red-600"><Trash2 size={16} /></button>
+                        </div>
                       </CardContent>
                     </Card>
-                  ))}
+                  )) : (
+                    <div className="text-center py-20 bg-slate-50 rounded-2xl border-2 border-dashed border-slate-200">
+                       <p className="text-slate-400 font-medium text-sm">Belum ada jadwal {activeKegiatanSubTab}.</p>
+                    </div>
+                  )}
                </div>
 
                <Card className="border-none shadow-sm border-2 border-emerald-50 h-fit">
-                  <CardHeader><CardTitle className="text-lg">Tambah Jadwal</CardTitle></CardHeader>
+                  <CardHeader><CardTitle className="text-lg">Tambah {activeKegiatanSubTab}</CardTitle></CardHeader>
                   <CardContent>
-                    <form onSubmit={(e) => handleAction(createGotongRoyong, e)} className="space-y-4">
+                    <form onSubmit={(e) => handleAction(createActivity, e)} className="space-y-4">
+                       <input type="hidden" name="activity_type" value={activeKegiatanSubTab} />
                        <div className="space-y-1">
-                          <label className="text-xs font-bold text-slate-500 uppercase">Judul</label>
-                          <input name="title" required className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm" />
+                          <label className="text-xs font-bold text-slate-500 uppercase">Judul Kegiatan</label>
+                          <input name="title" placeholder={`Contoh: ${activeKegiatanSubTab === 'Ronda' ? 'Ronda Malam Blok A' : activeKegiatanSubTab === 'Kerja Bakti' ? 'Kerja Bakti Saluran Air' : 'Pembersihan Selokan'}`} required className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 outline-none" />
                        </div>
                        <div className="grid grid-cols-2 gap-4">
                           <div className="space-y-1">
                              <label className="text-xs font-bold text-slate-500 uppercase">Tanggal</label>
-                             <input name="date" type="date" required className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm" />
+                             <input name="date" type="date" required className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 outline-none" />
                           </div>
                           <div className="space-y-1">
                              <label className="text-xs font-bold text-slate-500 uppercase">Waktu</label>
-                             <input name="time" type="time" required className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm" />
+                             <input name="time" type="time" required className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 outline-none" />
                           </div>
                        </div>
                        <div className="space-y-1">
-                          <label className="text-xs font-bold text-slate-500 uppercase">Target Peserta</label>
-                          <input name="required_participants" type="number" defaultValue="20" className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm" />
+                          <label className="text-xs font-bold text-slate-500 uppercase">Lokasi</label>
+                          <input name="location" required className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 outline-none" />
                        </div>
-                       <Button type="submit" className="w-full bg-emerald-600" isLoading={isSubmitting}>Simpan Jadwal</Button>
+                       <div className="space-y-1">
+                          <label className="text-xs font-bold text-slate-500 uppercase">Target Peserta</label>
+                          <input name="required_participants" type="number" defaultValue="20" className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 outline-none" />
+                       </div>
+                       <div className="space-y-1">
+                          <label className="text-xs font-bold text-slate-500 uppercase">Keterangan</label>
+                          <textarea name="description" rows={3} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 outline-none" />
+                       </div>
+                       <Button type="submit" className="w-full bg-emerald-600 shadow-md" isLoading={isSubmitting}>Simpan Jadwal</Button>
                     </form>
                   </CardContent>
                </Card>

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
@@ -12,12 +12,30 @@ import {
   CheckCircle2, 
   XCircle, 
   AlertCircle,
-  ChevronRight
+  ChevronRight,
+  Hammer,
+  ShieldAlert
 } from "lucide-react";
+import { createClient } from "@/lib/supabase/client";
 
-export default function GotongRoyongClient({ gotongRoyong }: { gotongRoyong: any[] }) {
+interface GotongRoyongClientProps {
+  gotongRoyong: any[];
+  title: string;
+  subtitle: string;
+}
+
+export default function GotongRoyongClient({ gotongRoyong, title, subtitle }: GotongRoyongClientProps) {
   const [attendance, setAttendance] = useState<string>("Belum Konfirmasi");
-  const isLoggedIn = false; // Mock
+  const [user, setUser] = useState<any>(null);
+  const supabase = createClient();
+
+  useEffect(() => {
+    const getUser = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      setUser(session?.user || null);
+    };
+    getUser();
+  }, [supabase]);
 
   const handleConfirm = (status: string) => {
     setAttendance(status);
@@ -37,11 +55,19 @@ export default function GotongRoyongClient({ gotongRoyong }: { gotongRoyong: any
     }
   };
 
+  const getActivityIcon = (type: string) => {
+    switch (type) {
+      case "Kerja Bakti": return <Hammer size={20} />;
+      case "Ronda": return <ShieldAlert size={20} />;
+      default: return <Users size={20} />;
+    }
+  };
+
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight text-slate-900">Gotong Royong</h1>
-        <p className="text-sm text-slate-500 mt-1">Jadwal kerja bakti dan gotong royong warga lingkungan.</p>
+        <h1 className="text-2xl font-bold tracking-tight text-slate-900">{title}</h1>
+        <p className="text-sm text-slate-500 mt-1">{subtitle}</p>
       </div>
 
       {gotongRoyong.length > 0 ? gotongRoyong.map((item) => (
@@ -49,7 +75,7 @@ export default function GotongRoyongClient({ gotongRoyong }: { gotongRoyong: any
           {/* Main Info */}
           <div className="lg:col-span-2 space-y-6">
             <Card className="border-none shadow-sm overflow-hidden">
-              <div className="h-2 bg-blue-500" />
+              <div className="h-2 bg-emerald-500" />
               <CardContent className="p-8">
                 <div className="flex justify-between items-start mb-6">
                   {getStatusBadge(item.status)}
@@ -99,15 +125,15 @@ export default function GotongRoyongClient({ gotongRoyong }: { gotongRoyong: any
                   <ul className="space-y-3">
                     <li className="flex gap-3 text-sm text-slate-600">
                       <ChevronRight size={18} className="text-emerald-500 shrink-0" />
-                      Diharapkan membawa peralatan kebersihan sendiri (sapu lidi, cangkul, dll).
+                      Diharapkan datang tepat waktu sesuai jadwal yang ditentukan.
                     </li>
                     <li className="flex gap-3 text-sm text-slate-600">
                       <ChevronRight size={18} className="text-emerald-500 shrink-0" />
-                      Konsumsi (snack & minum) disediakan oleh pengurus RT.
+                      Membawa perlengkapan jika diperlukan untuk kegiatan ini.
                     </li>
                     <li className="flex gap-3 text-sm text-slate-600">
                       <ChevronRight size={18} className="text-emerald-500 shrink-0" />
-                      Titik kumpul di depan Balai Warga.
+                      Titik kumpul akan diinformasikan kembali jika ada perubahan.
                     </li>
                   </ul>
                 </CardContent>
@@ -126,13 +152,13 @@ export default function GotongRoyongClient({ gotongRoyong }: { gotongRoyong: any
                 
                 <div className="pt-6 border-t border-emerald-500/30">
                   <h4 className="text-sm font-bold mb-4 flex items-center gap-2">
-                    <Users className="w-4 h-4" /> Kehadiran Anda
+                    {getActivityIcon(item.activity_type)} Kehadiran Anda
                   </h4>
                   
-                  {isLoggedIn ? (
+                  {user ? (
                     <div className="space-y-3">
                       <p className="text-xs text-emerald-50 mb-4 leading-relaxed">
-                        Konfirmasi kehadiran membantu kami menyiapkan konsumsi yang cukup.
+                        Konfirmasi kehadiran membantu kami menyiapkan segala kebutuhan kegiatan.
                       </p>
                       <div className="grid grid-cols-1 gap-2">
                         <Button 
@@ -187,7 +213,7 @@ export default function GotongRoyongClient({ gotongRoyong }: { gotongRoyong: any
           </div>
         </div>
       )) : (
-        <Card><CardContent className="p-20 text-center text-slate-500">Belum ada jadwal gotong royong.</CardContent></Card>
+        <Card><CardContent className="p-20 text-center text-slate-500">Belum ada jadwal {title.toLowerCase()}.</CardContent></Card>
       )}
     </div>
   );

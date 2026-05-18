@@ -11,13 +11,15 @@ export default function AgendaClient({ agendas }: { agendas: any[] }) {
   const [selectedCategory, setSelectedCategory] = useState<AgendaCategory | "Semua">("Semua");
 
   const categories: (AgendaCategory | "Semua")[] = [
-    "Semua", "Rapat", "Gotong Royong", "Sosial", "Kesehatan", "Keagamaan", "Lainnya"
+    "Semua", "Rapat", "Sosial", "Kesehatan", "Keagamaan", "Lainnya"
   ];
 
   const filteredAgendas = agendas.filter(agenda => {
     const matchesSearch = agenda.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
                          agenda.description.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesCategory = selectedCategory === "Semua" || agenda.category === selectedCategory;
+    // For general agenda page, we might want to exclude things that have their own submenus if they are also in agendas table
+    // But currently Gotong Royong is in its own table.
     return matchesSearch && matchesCategory;
   });
 

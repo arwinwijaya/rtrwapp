@@ -53,21 +53,32 @@ export default async function DashboardPage() {
   let verificationCount = 0;
   let openReportsCount = 0;
   let activeAgendasCount = 0;
+  let gotongRoyongCount = 0;
+  let kerjaBaktiCount = 0;
+  let rondaCount = 0;
   
   if (isAdmin) {
+    const today = new Date().toISOString().split("T")[0];
     const { count: wCount } = await supabase.from("residents").select("*", { count: "exact", head: true });
     wargaCount = wCount || 0;
     const { count: vCount } = await supabase.from("iuran_payments").select("*", { count: "exact", head: true }).eq("status", "Menunggu Verifikasi");
     verificationCount = vCount || 0;
     const { count: rCount } = await supabase.from("reports").select("*", { count: "exact", head: true }).eq("status", "Open");
     openReportsCount = rCount || 0;
-    const { count: aCount } = await supabase.from("agendas").select("*", { count: "exact", head: true }).gte("date", new Date().toISOString().split("T")[0]);
+    const { count: aCount } = await supabase.from("agendas").select("*", { count: "exact", head: true }).gte("date", today);
     activeAgendasCount = aCount || 0;
+
+    const { count: grCount } = await supabase.from("gotong_royong").select("*", { count: "exact", head: true }).eq("activity_type", "Gotong Royong").gte("date", today);
+    gotongRoyongCount = grCount || 0;
+    const { count: kbCount } = await supabase.from("gotong_royong").select("*", { count: "exact", head: true }).eq("activity_type", "Kerja Bakti").gte("date", today);
+    kerjaBaktiCount = kbCount || 0;
+    const { count: rdCount } = await supabase.from("gotong_royong").select("*", { count: "exact", head: true }).eq("activity_type", "Ronda").gte("date", today);
+    rondaCount = rdCount || 0;
   }
 
   // Shared Data
   const { data: agendas } = await supabase.from("agendas").select("*").gte("date", new Date().toISOString().split("T")[0]).order("date", { ascending: true }).limit(3);
-  const { data: gotongRoyong } = await supabase.from("gotong_royong").select("*").gte("date", new Date().toISOString().split("T")[0]).order("date", { ascending: true }).limit(1);
+  const { data: activities } = await supabase.from("gotong_royong").select("*").gte("date", new Date().toISOString().split("T")[0]).order("date", { ascending: true }).limit(3);
   const { data: pengumuman } = await supabase.from("announcements").select("*").order("publish_date", { ascending: false }).limit(4);
   const { data: kontak } = await supabase.from("emergency_contacts").select("*").eq("is_active", true).order("display_order", { ascending: true }).limit(3);
 
@@ -208,45 +219,41 @@ export default async function DashboardPage() {
             </div>
           </section>
 
-          {/* Gotong Royong */}
+          {/* Activities (Gotong Royong / Kerja Bakti / Ronda) */}
           <section className="space-y-4">
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2">
-                <Users className="w-5 h-5 text-blue-600" /> Gotong Royong Berikutnya
+                <Users className="w-5 h-5 text-blue-600" /> Kegiatan Warga Terdekat
               </h2>
-              <Link href="/gotong-royong" className="text-sm font-medium text-emerald-600 hover:text-emerald-700 flex items-center">
-                Detail Kegiatan <ArrowRight className="w-4 h-4 ml-1" />
+              <Link href="/agenda/gotong-royong" className="text-sm font-medium text-emerald-600 hover:text-emerald-700 flex items-center">
+                Lihat Semua <ArrowRight className="w-4 h-4 ml-1" />
               </Link>
             </div>
-            {gotongRoyong && gotongRoyong.length > 0 ? (
-              <Card className="border-l-4 border-l-blue-500 border-y-0 border-r-0 shadow-sm">
-                <CardContent className="p-6">
-                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-                    <div className="space-y-2 flex-1">
-                      <h3 className="text-xl font-bold text-slate-900">{gotongRoyong[0].title}</h3>
-                      <p className="text-sm text-slate-600 max-w-lg">{gotongRoyong[0].description}</p>
-                      <div className="flex flex-wrap gap-4 pt-2">
-                        <div className="flex items-center text-sm text-slate-600 gap-1.5">
-                          <Calendar size={16} className="text-slate-400" /> {new Date(gotongRoyong[0].date).toLocaleDateString('id-ID')}
-                        </div>
-                        <div className="flex items-center text-sm text-slate-600 gap-1.5">
-                          <Clock size={16} className="text-slate-400" /> {gotongRoyong[0].time} WIB
-                        </div>
-                        <div className="flex items-center text-sm text-slate-600 gap-1.5">
-                          <MapPin size={16} className="text-slate-400" /> {gotongRoyong[0].location}
-                        </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-stretch">
+              {activities && activities.length > 0 ? activities.map((act: any) => (
+                <Card key={act.id} className="h-full hover:shadow-md transition-all flex flex-col border-none shadow-sm">
+                  <CardContent className="p-5 flex-1 flex flex-col">
+                    <div className="flex justify-between items-start mb-3">
+                      <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-100 uppercase text-[10px]">
+                        {act.activity_type || 'Gotong Royong'}
+                      </Badge>
+                      <span className="text-xs text-slate-400 font-medium">{new Date(act.date).toLocaleDateString('id-ID')}</span>
+                    </div>
+                    <h3 className="font-bold text-slate-900 mb-2">{act.title}</h3>
+                    <div className="mt-auto space-y-1.5">
+                      <div className="flex items-center text-xs text-slate-600 gap-1.5">
+                        <Clock size={14} className="text-slate-400" /> {act.time} WIB
+                      </div>
+                      <div className="flex items-center text-xs text-slate-600 gap-1.5">
+                        <MapPin size={14} className="text-slate-400" /> {act.location}
                       </div>
                     </div>
-                    <div className="flex flex-col items-center justify-center p-4 bg-slate-50 rounded-xl min-w-[140px]">
-                      <span className="text-2xl font-bold text-slate-900">{gotongRoyong[0].required_participants}</span>
-                      <span className="text-xs text-slate-500 text-center font-medium">Target Peserta</span>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ) : (
-              <Card className="border-none shadow-sm"><CardContent className="p-8 text-center text-slate-500">Belum ada jadwal gotong royong.</CardContent></Card>
-            )}
+                  </CardContent>
+                </Card>
+              )) : (
+                <div className="col-span-2 p-6 text-center text-slate-500 bg-white rounded-xl border border-slate-100">Belum ada jadwal kegiatan terdekat.</div>
+              )}
+            </div>
           </section>
         </div>
 
@@ -260,10 +267,12 @@ export default async function DashboardPage() {
                 Manajemen
               </h2>
               <div className="grid grid-cols-2 gap-2">
-                <Link href="/admin"><Button variant="outline" className="w-full justify-start text-sm">Dashboard Admin</Button></Link>
+                <Link href="/admin"><Button variant="outline" className="w-full justify-start text-sm">Overview Admin</Button></Link>
                 <Link href="/admin?tab=warga"><Button variant="outline" className="w-full justify-start text-sm">Data Warga</Button></Link>
                 <Link href="/admin?tab=iuran"><Button variant="outline" className="w-full justify-start text-sm">Iuran Warga</Button></Link>
-                <Link href="/admin?tab=laporan"><Button variant="outline" className="w-full justify-start text-sm">Laporan Warga</Button></Link>
+                <Link href="/admin?tab=agenda"><Button variant="outline" className="w-full justify-start text-sm">Agenda & Rapat</Button></Link>
+                <Link href="/admin?tab=gotong-royong"><Button variant="outline" className="w-full justify-start text-sm">Kegiatan Warga</Button></Link>
+                <Link href="/admin?tab=pengumuman"><Button variant="outline" className="w-full justify-start text-sm">Pengumuman</Button></Link>
               </div>
             </section>
           )}

@@ -33,6 +33,7 @@ DROP TYPE IF EXISTS public.announcement_priority CASCADE;
 DROP TYPE IF EXISTS public.attendance_status CASCADE;
 DROP TYPE IF EXISTS public.visibility_type CASCADE;
 DROP TYPE IF EXISTS public.gotong_royong_status CASCADE;
+DROP TYPE IF EXISTS public.activity_type CASCADE;
 
 -- 1. Schemas and extensions
 CREATE SCHEMA IF NOT EXISTS private;
@@ -51,6 +52,7 @@ CREATE TYPE public.announcement_priority AS ENUM ('Normal', 'Penting', 'Mendesak
 CREATE TYPE public.attendance_status AS ENUM ('Hadir', 'Izin', 'Alpa', 'Akan Hadir', 'Tidak Hadir', 'Belum Konfirmasi');
 CREATE TYPE public.visibility_type AS ENUM ('Public', 'Warga Only');
 CREATE TYPE public.gotong_royong_status AS ENUM ('Scheduled', 'In Progress', 'Completed', 'Cancelled');
+CREATE TYPE public.activity_type AS ENUM ('Gotong Royong', 'Kerja Bakti', 'Ronda');
 
 -- 3. Utility function for updated_at
 CREATE OR REPLACE FUNCTION public.update_updated_at_column()
@@ -134,6 +136,7 @@ CREATE TABLE public.gotong_royong (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   housing_id UUID REFERENCES public.housing_profiles(id) ON DELETE CASCADE,
   title TEXT NOT NULL,
+  activity_type public.activity_type DEFAULT 'Gotong Royong',
   date DATE NOT NULL,
   time TIME,
   location TEXT,
@@ -673,10 +676,12 @@ VALUES
 ('a1111111-1111-4111-8111-111111111111', 'Posyandu Balita', 'Kesehatan', CURRENT_DATE + INTERVAL '12 days', '08:00:00', 'Posyandu Melati', 'Penimbangan balita dan pemberian vitamin.', 'Public'),
 ('a1111111-1111-4111-8111-111111111111', 'Sosialisasi Keamanan Lingkungan', 'Sosial', CURRENT_DATE + INTERVAL '18 days', '20:00:00', 'Pos Keamanan', 'Sosialisasi sistem keamanan dan ronda malam.', 'Public');
 
-INSERT INTO public.gotong_royong (housing_id, title, date, time, location, description, required_participants, status)
+INSERT INTO public.gotong_royong (housing_id, title, activity_type, date, time, location, description, required_participants, status)
 VALUES
-('a1111111-1111-4111-8111-111111111111', 'Pembersihan Selokan Blok A & B', CURRENT_DATE + INTERVAL '14 days', '07:00:00', 'Sepanjang Jalan Utama Blok A & B', 'Membersihkan saluran air mengantisipasi musim hujan.', 20, 'Scheduled'),
-('a1111111-1111-4111-8111-111111111111', 'Perapihan Taman Warga', CURRENT_DATE + INTERVAL '21 days', '07:30:00', 'Taman Tengah Perumahan', 'Potong rumput, bersihkan taman, dan cat ulang bangku taman.', 15, 'Scheduled');
+('a1111111-1111-4111-8111-111111111111', 'Pembersihan Selokan Blok A & B', 'Gotong Royong', CURRENT_DATE + INTERVAL '14 days', '07:00:00', 'Sepanjang Jalan Utama Blok A & B', 'Membersihkan saluran air mengantisipasi musim hujan.', 20, 'Scheduled'),
+('a1111111-1111-4111-8111-111111111111', 'Perapihan Taman Warga', 'Gotong Royong', CURRENT_DATE + INTERVAL '21 days', '07:30:00', 'Taman Tengah Perumahan', 'Potong rumput, bersihkan taman, dan cat ulang bangku taman.', 15, 'Scheduled'),
+('a1111111-1111-4111-8111-111111111111', 'Kerja Bakti Saluran Air', 'Kerja Bakti', CURRENT_DATE + INTERVAL '5 days', '08:00:00', 'Blok C dan D', 'Memperbaiki saluran air yang tersumbat.', 10, 'Scheduled'),
+('a1111111-1111-4111-8111-111111111111', 'Ronda Malam Blok A', 'Ronda', CURRENT_DATE + INTERVAL '1 days', '22:00:00', 'Pos Security Blok A', 'Jadwal ronda rutin untuk keamanan lingkungan.', 4, 'Scheduled');
 
 INSERT INTO public.iuran_periods (id, housing_id, iuran_type_id, title, month, year, amount, due_date, description, status)
 VALUES
