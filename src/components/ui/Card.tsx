@@ -29,6 +29,14 @@ export function CardTitle({ children, className, ...props }: CardProps) {
   );
 }
 
+export function CardDescription({ children, className, ...props }: CardProps) {
+  return (
+    <p className={clsx("text-sm text-slate-500 mt-1", className)} {...props}>
+      {children}
+    </p>
+  );
+}
+
 export function CardContent({ children, className, ...props }: CardProps) {
   return (
     <div className={clsx("px-4 py-5 sm:p-6", className)} {...props}>

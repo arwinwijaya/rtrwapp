@@ -66,3 +66,21 @@ export interface Laporan {
   created_by: string;
   created_at: string;
 }
+
+export interface HousingProfile {
+  id: string;
+  name: string;
+  description: string;
+  address?: string;
+  phone?: string;
+  email?: string;
+  logo_url?: string;
+}
+
+export interface EmergencyContact {
+  id: string;
+  name: string;
+  phone: string;
+  category: string;
+  display_order?: number;
+}

@@ -1,4 +1,13 @@
-import { Agenda, GotongRoyong, Iuran, Pengumuman, Warga, Laporan } from "@/types";
+import { Agenda, GotongRoyong, Iuran, Pengumuman, Warga, Laporan, HousingProfile, EmergencyContact } from "@/types";
+
+export const mockHousingProfile: HousingProfile = {
+  id: "hp1",
+  name: "Perumahan Harmoni",
+  description: "Platform informasi dan layanan terpadu untuk warga RT 01 / RW 05. Tetap terhubung, aman, dan nyaman bersama.",
+  address: "Jalan Melati No. 123, Jakarta Selatan",
+  phone: "021-1234567",
+  email: "rt01rw05.harmoni@example.com",
+};
 
 export const mockAgendas: Agenda[] = [
   {
@@ -147,5 +156,29 @@ export const mockLaporan: Laporan[] = [
     status: "Diproses",
     created_by: "Agus Pratama",
     created_at: "2023-11-18T14:15:00Z",
+  }
+];
+
+export const mockKontakDarurat: EmergencyContact[] = [
+  {
+    id: "c1",
+    name: "Ambulans",
+    phone: "118",
+    category: "Medis",
+    display_order: 1,
+  },
+  {
+    id: "c2",
+    name: "Polisi",
+    phone: "110",
+    category: "Keamanan",
+    display_order: 2,
+  },
+  {
+    id: "c3",
+    name: "Pemadam Kebakaran",
+    phone: "113",
+    category: "Keamanan",
+    display_order: 3,
   }
 ];

@@ -4,9 +4,15 @@ import React, { useState } from "react";
 import Sidebar from "./Sidebar";
 import Header from "./Header";
 import { Menu } from "lucide-react";
+import { usePathname } from "next/navigation";
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const pathname = usePathname();
+
+  if (pathname === '/' || pathname === '/login') {
+    return <>{children}</>;
+  }
 
   return (
     <div className="flex h-screen bg-slate-50">
