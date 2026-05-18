@@ -4,14 +4,16 @@ Platform manajemen terpusat untuk operasional komunitas perumahan RT/RW di Indon
 
 ## Fitur Utama (MVP)
 - **Dashboard**: Ringkasan jadwal, iuran tertunggak, dan laporan aktif.
-- **Manajemen Iuran**: Pencatatan pembayaran warga.
-- **RT RW Copilot**: Asisten AI untuk membantu menyusun pengumuman dan pesan warga (Mock ready for Gemini).
-- **Manajemen Warga & Laporan**: *Placeholder pages*.
+- **Admin Panel**: CRUD lengkap untuk data warga, iuran, agenda, pengumuman, dan laporan.
+- **Manajemen Iuran**: Pencatatan pembayaran warga dengan otomatisasi tagihan.
+- **RT RW Copilot**: Asisten AI untuk membantu menyusun pengumuman dan pesan warga (Gemini Integrated).
+- **Laporan Warga**: Sistem pelaporan masalah lingkungan secara real-time.
 
 ## Teknologi
 - Next.js 15 (App Router)
 - React 19
 - Tailwind CSS v4
+- Supabase (Auth, Database, RLS)
 - TypeScript
 - Lucide React (Icons)
 
@@ -24,15 +26,22 @@ npm run dev
 
 Aplikasi akan berjalan di `http://localhost:3000`.
 
-## Firebase Setup (Preparation)
-1. Buat proyek di Firebase Console.
-2. Tambahkan config Firebase ke `.env.local` Anda:
+## Supabase Setup
+1. Buat proyek di [Supabase Console](https://app.supabase.com).
+2. Jalankan isi file `supabase/schema.sql` di **SQL Editor** Supabase.
+3. Tambahkan environment variables ke `.env.local`:
 ```env
-NEXT_PUBLIC_FIREBASE_API_KEY="your-api-key"
-NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN="your-auth-domain"
-NEXT_PUBLIC_FIREBASE_PROJECT_ID="your-project-id"
+NEXT_PUBLIC_SUPABASE_URL="your-project-url"
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY="your-anon-key"
+SUPABASE_SERVICE_ROLE_KEY="your-service-role-key"
 ```
-3. Saat ini `src/services/firebase.ts` menggunakan *mock data*. Anda dapat mengganti fungsi tersebut dengan pemanggilan SDK Firestore.
+
+*Note: `SUPABASE_SERVICE_ROLE_KEY` hanya dibaca di sisi server (Server Actions/API) untuk keperluan pembuatan akun login warga secara otomatis.*
+
+## Akun Admin Default
+Setelah menjalankan `schema.sql`, gunakan akun berikut untuk mencoba Admin Panel:
+- **Email**: `muhamad.arwinwijaya@gmail.com`
+- **Password**: `admin123`
 
 ## Deployment ke Google Cloud Run
 
@@ -49,6 +58,5 @@ docker run -p 8080:8080 rtrw-app
 gcloud run deploy rtrw-app \
   --source . \
   --region asia-southeast1 \
-  --allow-unauthenticated \
-  --project=rtrwapp
+  --allow-unauthenticated
 ```
