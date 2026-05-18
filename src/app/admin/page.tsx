@@ -31,20 +31,20 @@ export default function AdminPanelPage() {
         <p className="text-sm text-slate-500 mt-1">Pengaturan sistem dan RT RW Copilot (AI Assistant).</p>
       </div>
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <Card>
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2 items-stretch">
+        <Card className="h-full flex flex-col border-none shadow-sm">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Sparkles className="w-5 h-5 text-emerald-500" />
               RT RW Copilot
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-4 flex-1 flex flex-col">
             <p className="text-sm text-slate-600">
               Gunakan AI untuk membantu menulis pengumuman warga, pesan WhatsApp tagihan iuran, atau undangan gotong royong dengan bahasa yang sopan.
             </p>
             
-            <div className="space-y-3 pt-4 border-t border-slate-100">
+            <div className="space-y-3 pt-4 border-t border-slate-100 mt-auto">
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">Topik Pengumuman</label>
                 <input
@@ -81,8 +81,8 @@ export default function AdminPanelPage() {
           </CardContent>
         </Card>
 
-        <div className="space-y-6">
-          <Card>
+        <div className="space-y-6 flex flex-col">
+          <Card className="flex-1 border-none shadow-sm">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Users className="w-5 h-5 text-slate-500" />
@@ -97,7 +97,7 @@ export default function AdminPanelPage() {
             </CardContent>
           </Card>
           
-          <Card>
+          <Card className="flex-1 border-none shadow-sm">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Settings className="w-5 h-5 text-slate-500" />
