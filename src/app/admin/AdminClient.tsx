@@ -19,7 +19,13 @@ import {
   Sparkles,
   LayoutDashboard,
   Building2,
-  ArrowRight
+  ArrowRight,
+  CheckCircle2,
+  Clock,
+  Ban,
+  AlertCircle,
+  Check,
+  X
 } from "lucide-react";
 import { 
   createResident, 
@@ -32,7 +38,8 @@ import {
   updateReportStatus,
   updateHousingProfile,
   verifyPayment,
-  rejectPayment
+  rejectPayment,
+  updatePaymentStatus
 } from "./actions";
 
 type AdminTab = "overview" | "warga" | "iuran" | "agenda" | "gotong-royong" | "pengumuman" | "laporan" | "kontak" | "profil";
@@ -74,6 +81,7 @@ export default function AdminClient({
   const [activeIuranType, setActiveIuranType] = useState<string>(iuranTypes[0]?.id || "");
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
   const [selectedPayment, setSelectedPayment] = useState<any>(null);
+  const [selectedCell, setSelectedCell] = useState<{residentId: string, month: string, year: number} | null>(null);
   const [adminNote, setAdminNote] = useState("");
 
   const getPayment = (residentId: string, month: string, year: number) => {
@@ -84,6 +92,23 @@ export default function AdminClient({
       p.iuran_periods?.iuran_type_id === activeIuranType
     );
   };
+
+  const getPeriod = (month: string, year: number) => {
+    return iuranPeriods.find(p => 
+      p.iuran_type_id === activeIuranType && 
+      p.month === month && 
+      p.year === year
+    );
+  };
+
+  const iuranForActiveType = iuranPayments.filter(p => p.iuran_periods?.iuran_type_id === activeIuranType && p.iuran_periods?.year === selectedYear);
+  const activePeriods = iuranPeriods.filter(p => p.iuran_type_id === activeIuranType && p.year === selectedYear);
+  
+  const lunasCount = iuranForActiveType.filter(p => p.status === 'Lunas').length;
+  const verifCount = iuranForActiveType.filter(p => p.status === 'Menunggu Verifikasi').length;
+  const ditolakCount = iuranForActiveType.filter(p => p.status === 'Ditolak').length;
+  const totalPossiblePayments = warga.length * activePeriods.length;
+  const belumBayarCount = totalPossiblePayments - lunasCount - verifCount - ditolakCount;
   
   // Tabs navigation
   const tabs = [
@@ -374,29 +399,33 @@ export default function AdminClient({
             </div>
 
             {/* Summary Cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-               <Card className="border-none shadow-sm bg-white"><CardContent className="p-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+               <Card className="border-none shadow-sm bg-white"><CardContent className="p-4 text-center">
                   <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Total Warga</p>
                   <p className="text-xl font-bold text-slate-900">{warga.length}</p>
                </CardContent></Card>
-               <Card className="border-none shadow-sm bg-white"><CardContent className="p-4">
-                  <p className="text-[10px] font-bold text-amber-500 uppercase tracking-widest mb-1">Belum Bayar</p>
-                  <p className="text-xl font-bold text-amber-600">{warga.length - iuranPayments.filter(p => p.iuran_periods?.iuran_type_id === activeIuranType && p.status === 'Lunas').length}</p>
+               <Card className="border-none shadow-sm bg-white border-l-4 border-l-orange-500"><CardContent className="p-4 text-center">
+                  <p className="text-[10px] font-bold text-orange-500 uppercase tracking-widest mb-1">❌ Belum Bayar</p>
+                  <p className="text-xl font-bold text-orange-600">{belumBayarCount}</p>
                </CardContent></Card>
-               <Card className="border-none shadow-sm bg-white"><CardContent className="p-4">
-                  <p className="text-[10px] font-bold text-blue-500 uppercase tracking-widest mb-1">Perlu Verifikasi</p>
-                  <p className="text-xl font-bold text-blue-600">{iuranPayments.filter(p => p.iuran_periods?.iuran_type_id === activeIuranType && p.status === 'Menunggu Verifikasi').length}</p>
+               <Card className="border-none shadow-sm bg-white border-l-4 border-l-blue-500"><CardContent className="p-4 text-center">
+                  <p className="text-[10px] font-bold text-blue-500 uppercase tracking-widest mb-1">⏳ Verifikasi</p>
+                  <p className="text-xl font-bold text-blue-600">{verifCount}</p>
                </CardContent></Card>
-               <Card className="border-none shadow-sm bg-white"><CardContent className="p-4">
-                  <p className="text-[10px] font-bold text-emerald-500 uppercase tracking-widest mb-1">Sudah Lunas</p>
-                  <p className="text-xl font-bold text-emerald-600">{iuranPayments.filter(p => p.iuran_periods?.iuran_type_id === activeIuranType && p.status === 'Lunas').length}</p>
+               <Card className="border-none shadow-sm bg-white border-l-4 border-l-emerald-500"><CardContent className="p-4 text-center">
+                  <p className="text-[10px] font-bold text-emerald-500 uppercase tracking-widest mb-1">✅ Lunas</p>
+                  <p className="text-xl font-bold text-emerald-600">{lunasCount}</p>
+               </CardContent></Card>
+               <Card className="border-none shadow-sm bg-white border-l-4 border-l-red-500"><CardContent className="p-4 text-center">
+                  <p className="text-[10px] font-bold text-red-500 uppercase tracking-widest mb-1">⛔ Ditolak</p>
+                  <p className="text-xl font-bold text-red-600">{ditolakCount}</p>
                </CardContent></Card>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-4 gap-8 items-start">
                <div className="lg:col-span-3 space-y-6">
                   <Card className="border-none shadow-sm overflow-hidden">
-                    <CardHeader className="pb-4 border-b border-slate-50 flex flex-row items-center justify-between bg-slate-50/30">
+                    <CardHeader className="pb-4 border-b border-slate-50 flex flex-col md:flex-row md:items-center justify-between bg-slate-50/30 gap-4">
                       <div className="relative max-w-xs w-full">
                           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
                           <input 
@@ -407,10 +436,25 @@ export default function AdminClient({
                             onChange={(e) => setSearchTerm(e.target.value)}
                           />
                       </div>
-                      <div className="flex items-center gap-4 text-[10px] font-bold uppercase tracking-tighter text-slate-400">
-                         <div className="flex items-center gap-1"><div className="w-2 h-2 rounded-full bg-slate-200" /> Belum</div>
-                         <div className="flex items-center gap-1"><div className="w-2 h-2 rounded-full bg-blue-500" /> Verif</div>
-                         <div className="flex items-center gap-1"><div className="w-2 h-2 rounded-full bg-emerald-500" /> Lunas</div>
+                      
+                      {/* Status Legend */}
+                      <div className="flex flex-wrap items-center gap-3 text-[10px] font-bold uppercase tracking-tighter">
+                         <div className="flex items-center gap-1.5 px-2 py-1 bg-white border border-slate-100 rounded-lg shadow-sm">
+                            <X className="w-3 h-3 text-orange-500" strokeWidth={3} />
+                            <span className="text-slate-600">Belum</span>
+                         </div>
+                         <div className="flex items-center gap-1.5 px-2 py-1 bg-white border border-slate-100 rounded-lg shadow-sm">
+                            <Clock className="w-3 h-3 text-blue-500" strokeWidth={3} />
+                            <span className="text-slate-600">Verif</span>
+                         </div>
+                         <div className="flex items-center gap-1.5 px-2 py-1 bg-white border border-slate-100 rounded-lg shadow-sm">
+                            <Check className="w-3 h-3 text-emerald-500" strokeWidth={3} />
+                            <span className="text-slate-600">Lunas</span>
+                         </div>
+                         <div className="flex items-center gap-1.5 px-2 py-1 bg-white border border-slate-100 rounded-lg shadow-sm">
+                            <Ban className="w-3 h-3 text-red-500" strokeWidth={3} />
+                            <span className="text-slate-600">Tolak</span>
+                         </div>
                       </div>
                     </CardHeader>
                     <div className="overflow-x-auto">
@@ -419,43 +463,54 @@ export default function AdminClient({
                           <tr className="bg-slate-50/50">
                             <th className="sticky left-0 z-10 bg-slate-50 px-6 py-4 font-bold uppercase text-[10px] border-r border-slate-100 min-w-[180px]">Nama Warga</th>
                             {MONTHS.map(m => (
-                              <th key={m} className="px-3 py-4 font-bold uppercase text-[10px] text-center min-w-[100px] border-r border-slate-100 last:border-0">{m.slice(0, 3)}</th>
+                              <th key={m} className="px-3 py-4 font-bold uppercase text-[10px] text-center min-w-[80px] border-r border-slate-100 last:border-0">{m.slice(0, 3)}</th>
                             ))}
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100">
                           {warga.filter(w => w.name.toLowerCase().includes(searchTerm.toLowerCase())).map(resident => (
-                            <tr key={resident.id} className="hover:bg-slate-50/50 transition-colors">
-                              <td className="sticky left-0 z-10 bg-white group-hover:bg-slate-50 px-6 py-4 border-r border-slate-100">
+                            <tr key={resident.id} className="hover:bg-slate-50/50 transition-colors group">
+                              <td className="sticky left-0 z-10 bg-white group-hover:bg-slate-50 px-6 py-4 border-r border-slate-100 transition-colors">
                                 <p className="font-bold text-slate-900 leading-none">{resident.name}</p>
                                 <p className="text-[10px] text-slate-400 mt-1 uppercase">Blok {resident.block} / {resident.house_number}</p>
                               </td>
                               {MONTHS.map(month => {
                                 const payment = getPayment(resident.id, month, selectedYear);
+                                const period = getPeriod(month, selectedYear);
+                                
+                                if (!period) {
+                                  return (
+                                    <td key={month} className="p-1 border-r border-slate-100 last:border-0 bg-slate-50/30">
+                                      <div className="w-full h-12 flex items-center justify-center text-[8px] text-slate-300 font-bold uppercase">No Period</div>
+                                    </td>
+                                  );
+                                }
+
                                 return (
                                   <td key={month} className="p-1 border-r border-slate-100 last:border-0">
-                                    {payment ? (
-                                      <button
-                                        onClick={() => {
-                                          setSelectedPayment(payment);
-                                          setAdminNote(payment.notes || "");
-                                        }}
-                                        className={`w-full h-10 rounded-lg flex items-center justify-center transition-all ${
-                                          payment.status === 'Lunas' ? 'bg-emerald-500 text-white shadow-sm' :
-                                          payment.status === 'Menunggu Verifikasi' ? 'bg-blue-500 text-white animate-pulse shadow-md' :
-                                          payment.status === 'Ditolak' ? 'bg-red-500 text-white' :
-                                          'bg-slate-100 text-slate-400 hover:bg-slate-200'
-                                        }`}
-                                      >
-                                        <span className="text-[10px] font-bold">
-                                          {payment.status === 'Lunas' ? 'LUNAS' : 
-                                           payment.status === 'Menunggu Verifikasi' ? 'VERIF' : 
-                                           payment.status === 'Ditolak' ? 'TOLAK' : 'BELUM'}
-                                        </span>
-                                      </button>
-                                    ) : (
-                                      <div className="w-full h-10 bg-slate-50/50 rounded-lg border border-dashed border-slate-100" />
-                                    )}
+                                    <button
+                                      onClick={() => {
+                                        setSelectedPayment(payment || null);
+                                        setSelectedCell({ residentId: resident.id, month, year: selectedYear });
+                                        setAdminNote(payment?.notes || "");
+                                      }}
+                                      className={`w-full h-12 rounded-xl flex flex-col items-center justify-center gap-0.5 transition-all shadow-sm border ${
+                                        payment?.status === 'Lunas' ? 'bg-emerald-500 border-emerald-600 text-white hover:bg-emerald-600' :
+                                        payment?.status === 'Menunggu Verifikasi' ? 'bg-blue-500 border-blue-600 text-white animate-pulse shadow-blue-100 hover:bg-blue-600' :
+                                        payment?.status === 'Ditolak' ? 'bg-red-500 border-red-600 text-white hover:bg-red-600' :
+                                        'bg-orange-50 border-orange-100 text-orange-600 hover:bg-orange-100'
+                                      }`}
+                                    >
+                                      {payment?.status === 'Lunas' ? <Check size={16} strokeWidth={3} /> :
+                                       payment?.status === 'Menunggu Verifikasi' ? <Clock size={16} strokeWidth={3} /> :
+                                       payment?.status === 'Ditolak' ? <Ban size={16} strokeWidth={3} /> :
+                                       <X size={16} strokeWidth={3} />}
+                                      <span className="text-[8px] font-black uppercase tracking-tighter">
+                                        {payment?.status === 'Lunas' ? 'LUNAS' : 
+                                         payment?.status === 'Menunggu Verifikasi' ? 'VERIF' : 
+                                         payment?.status === 'Ditolak' ? 'TOLAK' : 'BELUM'}
+                                      </span>
+                                    </button>
                                   </td>
                                 );
                               })}
@@ -510,86 +565,118 @@ export default function AdminClient({
                   </Card>
 
                   {/* Payment Detail Section */}
-                  {selectedPayment && (
-                    <Card className="border-none shadow-xl border-t-4 border-t-emerald-500 animate-in slide-in-from-right duration-300">
+                  {(selectedPayment || selectedCell) && (
+                    <Card className="border-none shadow-2xl border-t-4 border-t-slate-900 animate-in slide-in-from-right duration-300">
                       <CardHeader className="pb-2 border-b border-slate-50 flex flex-row items-center justify-between">
-                         <CardTitle className="text-sm font-bold uppercase">Detail Pembayaran</CardTitle>
-                         <button onClick={() => setSelectedPayment(null)} className="text-slate-400 hover:text-slate-600"><XCircle size={18} /></button>
+                         <CardTitle className="text-sm font-bold uppercase">Aksi Pembayaran</CardTitle>
+                         <button onClick={() => { setSelectedPayment(null); setSelectedCell(null); }} className="text-slate-400 hover:text-slate-600"><XCircle size={18} /></button>
                       </CardHeader>
                       <CardContent className="p-6 space-y-4">
                         <div className="space-y-1">
-                           <p className="text-[10px] font-bold text-slate-400 uppercase">Warga</p>
-                           <p className="font-bold text-slate-900">{selectedPayment.resident_name}</p>
-                           <p className="text-xs text-slate-500">{selectedPayment.iuran_periods?.title}</p>
+                           <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Warga</p>
+                           <p className="font-bold text-slate-900">
+                             {selectedPayment?.resident_name || warga.find(w => w.id === selectedCell?.residentId)?.name}
+                           </p>
+                           <p className="text-xs text-slate-500 font-bold">
+                             {selectedCell?.month} {selectedCell?.year}
+                           </p>
                         </div>
-                        <div className="grid grid-cols-2 gap-4">
+
+                        <div className="grid grid-cols-2 gap-4 bg-slate-50 p-3 rounded-xl border border-slate-100">
                            <div className="space-y-1">
                               <p className="text-[10px] font-bold text-slate-400 uppercase">Nominal</p>
-                              <p className="font-bold text-emerald-600">Rp {selectedPayment.amount.toLocaleString()}</p>
+                              <p className="font-bold text-emerald-600">
+                                Rp {(selectedPayment?.amount || getPeriod(selectedCell?.month!, selectedCell?.year!)?.amount || 0).toLocaleString()}
+                              </p>
                            </div>
                            <div className="space-y-1">
                               <p className="text-[10px] font-bold text-slate-400 uppercase">Status</p>
-                              <Badge variant={selectedPayment.status === 'Lunas' ? 'success' : selectedPayment.status === 'Ditolak' ? 'danger' : 'warning'}>
-                                {selectedPayment.status}
+                              <Badge className="font-bold" variant={selectedPayment?.status === 'Lunas' ? 'success' : selectedPayment?.status === 'Ditolak' ? 'danger' : selectedPayment?.status === 'Menunggu Verifikasi' ? 'warning' : 'default'}>
+                                {selectedPayment?.status || 'Belum Bayar'}
                               </Badge>
                            </div>
                         </div>
 
-                        {selectedPayment.payment_method && (
+                        {selectedPayment?.payment_method && (
                            <div className="space-y-1">
                               <p className="text-[10px] font-bold text-slate-400 uppercase">Metode Pembayaran</p>
                               <p className="text-xs font-bold text-slate-700">{selectedPayment.payment_method}</p>
                            </div>
                         )}
 
-                        <div className="space-y-2">
+                        {selectedPayment?.payment_proof_url && (
+                           <div className="space-y-1">
+                              <p className="text-[10px] font-bold text-slate-400 uppercase">Bukti Bayar</p>
+                              <a href={selectedPayment.payment_proof_url} target="_blank" rel="noreferrer" className="text-xs font-bold text-blue-600 hover:underline flex items-center gap-1">
+                                Lihat Bukti <ArrowRight size={12} />
+                              </a>
+                           </div>
+                        )}
+
+                        <div className="space-y-2 pt-2">
                           <label className="text-[10px] font-bold text-slate-400 uppercase">Catatan Admin</label>
                           <textarea 
                             value={adminNote}
                             onChange={(e) => setAdminNote(e.target.value)}
-                            className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs outline-none focus:ring-2 focus:ring-emerald-500"
-                            placeholder="Tambahkan catatan jika perlu..."
+                            className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs outline-none focus:ring-2 focus:ring-emerald-500 shadow-sm"
+                            placeholder="Alasan penolakan atau catatan tambahan..."
                             rows={2}
                           />
                         </div>
 
-                        <div className="pt-4 border-t border-slate-50 space-y-2">
-                           {selectedPayment.status !== 'Lunas' && (
+                        <div className="pt-4 border-t border-slate-100 grid grid-cols-1 gap-2">
+                           {selectedPayment?.status !== 'Lunas' && (
                              <Button 
-                               className="w-full bg-emerald-600 shadow-md" 
+                               className="w-full bg-emerald-600 shadow-lg shadow-emerald-100 font-bold" 
                                isLoading={isSubmitting}
                                onClick={async () => {
                                  setIsSubmitting(true);
-                                 const res = await verifyPayment(selectedPayment.id, adminNote);
+                                 const periodId = selectedPayment?.period_id || getPeriod(selectedCell?.month!, selectedCell?.year!)?.id;
+                                 const res = await updatePaymentStatus('Lunas', selectedCell?.residentId!, periodId, selectedPayment?.id, adminNote);
                                  if (res.error) alert(res.error);
-                                 else {
-                                   setSelectedPayment(null);
-                                   window.location.reload();
-                                 }
+                                 else { setSelectedPayment(null); setSelectedCell(null); window.location.reload(); }
                                  setIsSubmitting(false);
                                }}
                              >
-                               Verifikasi Lunas
+                               Tandai Lunas ✅
                              </Button>
                            )}
-                           {selectedPayment.status === 'Menunggu Verifikasi' && (
+                           
+                           {(selectedPayment?.status === 'Menunggu Verifikasi' || selectedPayment?.status === 'Belum Bayar' || !selectedPayment) && (
                              <Button 
                                variant="ghost"
-                               className="w-full text-red-600 hover:bg-red-50" 
+                               className="w-full text-red-600 hover:bg-red-50 font-bold border border-transparent hover:border-red-100" 
                                isLoading={isSubmitting}
                                onClick={async () => {
-                                 if (!adminNote) return alert("Berikan alasan penolakan di catatan admin.");
+                                 if (!adminNote && (selectedPayment?.status === 'Menunggu Verifikasi')) return alert("Berikan alasan penolakan di catatan admin.");
                                  setIsSubmitting(true);
-                                 const res = await rejectPayment(selectedPayment.id, adminNote);
+                                 const periodId = selectedPayment?.period_id || getPeriod(selectedCell?.month!, selectedCell?.year!)?.id;
+                                 const res = await updatePaymentStatus('Ditolak', selectedCell?.residentId!, periodId, selectedPayment?.id, adminNote);
                                  if (res.error) alert(res.error);
-                                 else {
-                                   setSelectedPayment(null);
-                                   window.location.reload();
-                                 }
+                                 else { setSelectedPayment(null); setSelectedCell(null); window.location.reload(); }
                                  setIsSubmitting(false);
                                }}
                              >
-                               Tolak Pembayaran
+                               Tolak Pembayaran ⛔
+                             </Button>
+                           )}
+
+                           {selectedPayment && selectedPayment.status !== 'Belum Bayar' && (
+                             <Button 
+                               variant="ghost"
+                               className="w-full text-slate-500 hover:bg-slate-100 font-bold" 
+                               isLoading={isSubmitting}
+                               onClick={async () => {
+                                 if (!confirm("Tandai warga ini belum membayar? Data pembayaran sebelumnya akan dibersihkan.")) return;
+                                 setIsSubmitting(true);
+                                 const periodId = selectedPayment.period_id;
+                                 const res = await updatePaymentStatus('Belum Bayar', selectedCell?.residentId!, periodId, selectedPayment.id, adminNote);
+                                 if (res.error) alert(res.error);
+                                 else { setSelectedPayment(null); setSelectedCell(null); window.location.reload(); }
+                                 setIsSubmitting(false);
+                               }}
+                             >
+                               Tandai Belum Bayar ❌
                              </Button>
                            )}
                         </div>

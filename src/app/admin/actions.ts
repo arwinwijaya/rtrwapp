@@ -153,45 +153,153 @@ export async function updateReportStatus(id: string, status: string, admin_notes
 }
 
 /**
- * Verify Payment
+ * Verify Payment (Admin Action)
  */
 export async function verifyPayment(id: string, notes?: string) {
-  if (!(await checkAdmin())) return { error: 'Unauthorized' }
+  if (!(await checkAdmin())) return { error: 'Unauthorized' };
 
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  const admin_id = user?.id
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  const admin_id = user?.id;
 
   const { error } = await supabase.from('iuran_payments').update({
     status: 'Lunas',
     verified_by: admin_id,
     verified_at: new Date().toISOString(),
+    paid_at: new Date().toISOString(), // Assume paid now if not set
     notes: notes
-  }).eq('id', id)
-  if (error) return { error: error.message }
+  }).eq('id', id);
   
-  revalidatePath('/admin')
-  revalidatePath('/iuran')
-  return { success: true }
+  if (error) return { error: error.message };
+  
+  revalidatePath('/admin');
+  revalidatePath('/iuran');
+  return { success: true };
 }
 
 /**
- * Reject Payment
+ * Reject Payment (Admin Action)
  */
 export async function rejectPayment(id: string, notes: string) {
-  if (!(await checkAdmin())) return { error: 'Unauthorized' }
+  if (!(await checkAdmin())) return { error: 'Unauthorized' };
 
-  const supabase = await createClient()
+  const supabase = await createClient();
   const { error } = await supabase.from('iuran_payments').update({
     status: 'Ditolak',
     notes: notes
-  }).eq('id', id)
+  }).eq('id', id);
   
-  if (error) return { error: error.message }
+  if (error) return { error: error.message };
   
-  revalidatePath('/admin')
-  revalidatePath('/iuran')
-  return { success: true }
+  revalidatePath('/admin');
+  revalidatePath('/iuran');
+  return { success: true };
+}
+
+/**
+ * Comprehensive Update/Create Payment Status
+ */
+export async function updatePaymentStatus(
+  status: string, 
+  resident_id: string, 
+  period_id: string, 
+  payment_id?: string, 
+  notes?: string
+) {
+  if (!(await checkAdmin())) return { error: 'Unauthorized' };
+
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  const admin_id = user?.id;
+
+  try {
+    if (payment_id) {
+      // Update existing payment row
+      const updateData: any = { status, notes };
+      
+      if (status === 'Lunas') {
+        updateData.verified_by = admin_id;
+        updateData.verified_at = new Date().toISOString();
+        updateData.paid_at = new Date().toISOString();
+      } else if (status === 'Belum Bayar') {
+        updateData.paid_at = null;
+        updateData.verified_at = null;
+        updateData.verified_by = null;
+        updateData.payment_method = null;
+        updateData.payment_proof_url = null;
+      }
+
+      const { error } = await supabase
+        .from('iuran_payments')
+        .update(updateData)
+        .eq('id', payment_id);
+
+      if (error) throw error;
+    } else {
+      // Create new payment row for this cell
+      const { data: resident } = await supabase.from('residents').select('*').eq('id', resident_id).single();
+      const { data: period } = await supabase.from('iuran_periods').select('amount').eq('id', period_id).single();
+
+      if (!resident || !period) throw new Error('Data Warga atau Periode tidak ditemukan');
+
+      const insertData: any = {
+        period_id,
+        resident_id,
+        resident_name: resident.name,
+        house_number: resident.house_number,
+        block: resident.block,
+        amount: period.amount,
+        status,
+        notes
+      };
+
+      if (status === 'Lunas') {
+        insertData.verified_by = admin_id;
+        insertData.verified_at = new Date().toISOString();
+        insertData.paid_at = new Date().toISOString();
+      }
+
+      const { error } = await supabase
+        .from('iuran_payments')
+        .insert(insertData);
+
+      if (error) throw error;
+    }
+
+    revalidatePath('/admin');
+    revalidatePath('/iuran');
+    return { success: true };
+  } catch (error: any) {
+    return { error: error.message };
+  }
+}
+
+/**
+ * Confirm Payment (Resident Action)
+ */
+export async function confirmPayment(formData: FormData) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: 'Unauthorized' };
+
+  const id = formData.get('id') as string;
+  const payment_method = formData.get('payment_method') as string;
+  const payment_proof_url = formData.get('payment_proof_url') as string;
+  const notes = formData.get('notes') as string;
+
+  const { error } = await supabase.from('iuran_payments').update({
+    status: 'Menunggu Verifikasi',
+    payment_method,
+    payment_proof_url,
+    notes,
+    paid_at: new Date().toISOString()
+  }).eq('id', id);
+
+  if (error) return { error: error.message };
+  
+  revalidatePath('/iuran');
+  revalidatePath('/admin');
+  return { success: true };
 }
 
 /**
