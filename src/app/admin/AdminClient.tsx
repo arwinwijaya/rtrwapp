@@ -61,6 +61,7 @@ import {
 import { Modal } from "@/components/ui/Modal";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { AdminPageHeader } from "@/components/ui/AdminPageHeader";
+import AdminSidebar from "@/components/layout/AdminSidebar";
 
 type AdminTab = "overview" | "warga" | "iuran" | "agenda" | "pengumuman" | "laporan" | "kontak" | "profil";
 
@@ -185,18 +186,6 @@ export default function AdminClient({
   const totalPossiblePayments = warga.length * activePeriods.length;
   const belumBayarCount = totalPossiblePayments - lunasCount - verifCount - ditolakCount;
   
-  // Tabs navigation
-  const tabs = [
-    { id: "overview", label: "Dashboard", icon: LayoutDashboard },
-    { id: "warga", label: "Data Warga", icon: Users },
-    { id: "iuran", label: "Iuran", icon: Wallet },
-    { id: "agenda", label: "Agenda & Kegiatan", icon: Calendar },
-    { id: "pengumuman", label: "Pengumuman", icon: Megaphone },
-    { id: "laporan", label: "Laporan", icon: FileWarning },
-    { id: "kontak", label: "Kontak Darurat", icon: Phone },
-    { id: "profil", label: "Profil RT/RW", icon: Building2 },
-  ];
-
   // Unified Agenda Sub-tabs
   const [activeAgendaSubTab, setActiveAgendaSubTab] = useState<string>(initialTab);
   const [editingItem, setEditingItem] = useState<any>(null);
@@ -254,29 +243,12 @@ export default function AdminClient({
   };
 
   return (
-    <div className="flex flex-col lg:flex-row gap-8">
+    <div className="flex min-h-screen bg-slate-50 w-full">
       {/* Sidebar Navigation */}
-      <aside className="w-full lg:w-64 shrink-0">
-        <div className="sticky top-24 space-y-1">
-          {tabs.map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id as AdminTab)}
-              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-all ${
-                activeTab === tab.id 
-                ? "bg-emerald-600 text-white shadow-lg shadow-emerald-200" 
-                : "text-slate-600 hover:bg-white hover:text-emerald-600"
-              }`}
-            >
-              <tab.icon size={18} />
-              {tab.label}
-            </button>
-          ))}
-        </div>
-      </aside>
+      <AdminSidebar activeSection={activeTab} onSectionChange={setActiveTab} />
 
       {/* Main Content Area */}
-      <main className="flex-1 space-y-8 min-w-0 max-w-6xl mx-auto w-full px-4 sm:px-0">
+      <main className="flex-1 p-4 sm:p-6 lg:p-10 min-w-0 overflow-y-auto">
         {message && (
           <div className={`p-4 rounded-2xl border animate-in slide-in-from-top duration-300 ${
             message.type === 'success' ? 'bg-emerald-50 border-emerald-100 text-emerald-700' : 
